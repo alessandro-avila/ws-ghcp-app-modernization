@@ -14,11 +14,6 @@ variable "artifacts_location" {
   default     = "https://raw.githubusercontent.com/crgarcia12/azure-migrate-env/main/"
 }
 
-# variable "_artifactsLocationSasToken" {
-#   description = "The sasToken required to access _artifactsLocation. When the template is deployed using the accompanying scripts, a sasToken will be automatically generated. Use the defaultValue if the staging location is not secured."
-#   default     = ""
-# }
-
 variable "location" {
   description = "Location for all resources."
   default     = "swedencentral"

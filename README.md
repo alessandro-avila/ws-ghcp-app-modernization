@@ -5,7 +5,7 @@ This Terraform configuration deploys a Windows Server 2022 virtual machine in Az
 ## Architecture Overview
 
 The infrastructure includes:
-- A Windows Server 2022 VM (Size: Standard_E16_v3) with Hyper-V role
+- A Windows Server 2022 VM (Size: Standard_E16_v5) with Hyper-V role
 - Dual network interfaces (primary with public IP, secondary with accelerated networking)
 - Custom virtual network with multiple subnets
 - Network security groups with customizable rules
