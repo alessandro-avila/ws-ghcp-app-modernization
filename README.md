@@ -1,3 +1,11 @@
+# Carlos notes
+This lab requires sandard security type in VMs (not trusted launch):
+```
+az feature register --name UseStandardSecurityType --namespace Microsoft.Compute
+az feature show --name UseStandardSecurityType --namespace Microsoft.Compute
+```
+
+
 # Azure Hyper-V Infrastructure
 
 This Terraform configuration deploys a Windows Server 2022 virtual machine in Azure configured as a Hyper-V host, enabling nested virtualization with network connectivity between nested VMs and other Azure resources.

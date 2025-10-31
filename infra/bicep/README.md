@@ -61,10 +61,19 @@ az login
 az account set --subscription "96c2852b-cf88-4a55-9ceb-d632d25b83a4"
 
 # Create resource group
-az deployment sub create `
+az deployment group create `
   --location swedencentral `
   --template-file modules/resource-group.bicep `
   --parameters modules/resource-group.bicepparam
+```
+
+```
+az deployment group create `
+  --name lab-deployment `
+  --resource-group migr-lab-04 `
+  --template-file .\main.bicep `
+  --parameters .\main.bicepparam `
+  --what-if 
 ```
 
 ### Deploy the Infrastructure
@@ -78,7 +87,7 @@ $vmPasswordText = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.In
 
 # Deploy infrastructure
 az deployment group create `
-  --resource-group crgar-migr-rg `
+  --resource-group mig-lab2 `
   --template-file main.bicep `
   --parameters main.bicepparam `
   --parameters vmPassword=$vmPasswordText
@@ -127,7 +136,7 @@ The deployment creates:
 
 6. **Route Table** to route traffic through the Hyper-V host
 
-7. **Windows VM** (Standard_E16_v3) with:
+7. **Windows VM** (Standard_E16_v5) with:
    - Windows Server 2022 Datacenter
    - 1TB data disk
    - DSC extension for Windows features

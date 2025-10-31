@@ -53,7 +53,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2023-09-01' = {
     }
     storageProfile: {
       imageReference: {
-        id: '/subscriptions/96c2852b-cf88-4a55-9ceb-d632d25b83a4/resourceGroups/CRGAR-VM-GALLERY/providers/Microsoft.Compute/galleries/crgarvmgallery/images/migrate-lab-0.0.4/versions/0.0.4'
+        communityGalleryImageId: '/CommunityGalleries/crgardemogallery-3167aeab-db3a-49f3-a41b-52b828f29a3c/Images/migrate-lab-0.0.4/Versions/0.0.4'
       }
       osDisk: {
         name: osDiskName
