@@ -32,7 +32,8 @@
     },
     "prefix": {
       "type": "string",
-      "defaultValue": "lab@lab.LabInstance.ID",
+      // "defaultValue": "lab@lab.LabInstance.ID",
+      "defaultValue": "crgmig",
       "metadata": {
         "description": "Resource name prefix"
       }
@@ -102,7 +103,9 @@
       "azurevms-nsg": []
     },
     "dscInstallWindowsFeaturesUri": "[format('{0}scripts/dscinstallwindowsfeatures.zip', parameters('artifactsLocation'))]",
-    "hvHostSetupScriptUri": "[format('{0}scripts/hvhostsetup.ps1', parameters('artifactsLocation'))]"
+    "hvHostSetupScriptUri": "[format('{0}scripts/hvhostsetup.ps1', parameters('artifactsLocation'))]",
+    "applianceName": "offlinecollector",
+    "projectName": "[format('{0}-prj', parameters('prefix'))]"
   },
   "resources": [
     {
@@ -1042,301 +1045,301 @@
         "[resourceId('Microsoft.Resources/deployments', 'deploy-vnet')]"
       ]
     },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2022-09-01",
-      "name": "deploy-windows-vm",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "name": {
-            "value": "[variables('vmName')]"
-          },
-          "location": {
-            "value": "[parameters('location')]"
-          },
-          "vmSize": {
-            "value": "Standard_E32as_v5"
-          },
-          "adminUsername": {
-            "value": "adminuser"
-          },
-          "adminPassword": {
-            "value": "[parameters('vmPassword')]"
-          },
-          "networkInterfaceIds": {
-            "value": [
-              "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-nic-primary'), '2022-09-01').outputs.nicId.value]",
-              "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-nic-secondary'), '2022-09-01').outputs.nicId.value]"
-            ]
-          },
-          "osDiskName": {
-            "value": "[format('{0}-os', variables('vmName'))]"
-          },
-          "osDiskStorageAccountType": {
-            "value": "Standard_LRS"
-          },
-          "dataDisks": {
-            "value": [
-              {
-                "name": "[format('{0}-disk1', variables('vmName'))]",
-                "createOption": "Empty",
-                "diskSizeGB": 1024,
-                "storageAccountType": "Standard_LRS",
-                "caching": "ReadOnly",
-                "imageReference": {
-                  "communityGalleryImageId": "CommunityGalleries/crgardemogallery-3167aeab-db3a-49f3-a41b-52b828f29a3c/Images/migrate-lab-0.0.4/Versions/latest"
-                }
-              }
-            ]
-          },
-          "bootDiagnosticsStorageUri": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-storage'), '2022-09-01').outputs.primaryBlobEndpoint.value]"
-          },
-          "dscConfiguration": {
-            "value": {
-              "wmfVersion": "latest",
-              "configuration": {
-                "url": "[variables('dscInstallWindowsFeaturesUri')]",
-                "script": "DSCInstallWindowsFeatures.ps1",
-                "function": "InstallWindowsFeatures"
-              }
-            }
-          },
-          "customScriptExtension": {
-            "value": {
-              "fileUris": [
-                "[variables('hvHostSetupScriptUri')]"
-              ],
-              "commandToExecute": "[format('powershell -ExecutionPolicy Unrestricted -File hvhostsetup.ps1 -NIC1IPAddress {0} -NIC2IPAddress {1} -GhostedSubnetPrefix {2} -VirtualNetworkPrefix {3}', reference(resourceId('Microsoft.Resources/deployments', 'deploy-nic-primary'), '2022-09-01').outputs.privateIpAddress.value, reference(resourceId('Microsoft.Resources/deployments', 'deploy-nic-secondary'), '2022-09-01').outputs.privateIpAddress.value, variables('ghostedSubnetAddressPrefix'), variables('addressSpaces')[0])]"
-            }
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.18.4.5664",
-              "templateHash": "6155868417354153081"
-            }
-          },
-          "parameters": {
-            "name": {
-              "type": "string",
-              "defaultValue": "crgar-migr-vm",
-              "metadata": {
-                "description": "The name of the virtual machine"
-              }
-            },
-            "location": {
-              "type": "string",
-              "defaultValue": "swedencentral",
-              "metadata": {
-                "description": "The location for the virtual machine"
-              }
-            },
-            "vmSize": {
-              "type": "string",
-              "defaultValue": "Standard_E32as_v5",
-              "metadata": {
-                "description": "The size of the virtual machine"
-              }
-            },
-            "adminUsername": {
-              "type": "string",
-              "defaultValue": "adminuser",
-              "metadata": {
-                "description": "The admin username"
-              }
-            },
-            "adminPassword": {
-              "type": "securestring",
-              "metadata": {
-                "description": "The admin password"
-              }
-            },
-            "networkInterfaceIds": {
-              "type": "array",
-              "metadata": {
-                "description": "Network interface IDs to attach"
-              }
-            },
-            "osDiskName": {
-              "type": "string",
-              "defaultValue": "crgar-migr-vm-os",
-              "metadata": {
-                "description": "OS disk name"
-              }
-            },
-            "osDiskStorageAccountType": {
-              "type": "string",
-              "defaultValue": "Standard_LRS",
-              "metadata": {
-                "description": "OS disk storage account type"
-              }
-            },
-            "dataDisks": {
-              "type": "array",
-              "defaultValue": [
-                {
-                  "name": "crgar-migr-vm-disk1",
-                  "createOption": "Empty",
-                  "diskSizeGB": 1024,
-                  "storageAccountType": "Standard_LRS",
-                  "caching": "ReadOnly"
-                }
-              ],
-              "metadata": {
-                "description": "Data disk configuration"
-              }
-            },
-            "bootDiagnosticsStorageUri": {
-              "type": "string",
-              "defaultValue": "",
-              "metadata": {
-                "description": "Boot diagnostics storage account URI"
-              }
-            },
-            "dscConfiguration": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "DSC extension configuration"
-              }
-            },
-            "customScriptExtension": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "Custom script extension configuration"
-              }
-            },
-            "tags": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "Tags to apply to the virtual machine"
-              }
-            }
-          },
-          "resources": [
-            {
-              "type": "Microsoft.Compute/virtualMachines",
-              "apiVersion": "2023-09-01",
-              "name": "[parameters('name')]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "hardwareProfile": {
-                  "vmSize": "[parameters('vmSize')]"
-                },
-                "securityProfile": {
-                  "securityType": "Standard"
-                },
-                "storageProfile": {
-                  "copy": [
-                    {
-                      "name": "dataDisks",
-                      "count": "[length(parameters('dataDisks'))]",
-                      "input": {
-                        "lun": "[copyIndex('dataDisks')]",
-                        "name": "[parameters('dataDisks')[copyIndex('dataDisks')].name]",
-                        "createOption": "[parameters('dataDisks')[copyIndex('dataDisks')].createOption]",
-                        "diskSizeGB": "[parameters('dataDisks')[copyIndex('dataDisks')].diskSizeGB]",
-                        "managedDisk": {
-                          "storageAccountType": "[parameters('dataDisks')[copyIndex('dataDisks')].storageAccountType]"
-                        },
-                        "caching": "[parameters('dataDisks')[copyIndex('dataDisks')].caching]"
-                      }
-                    }
-                  ],
-                  "imageReference": {
-                    "communityGalleryImageId": "/subscriptions/96c2852b-cf88-4a55-9ceb-d632d25b83a4/resourceGroups/crgar-vm-gallery/providers/Microsoft.Compute/galleries/crgarvmgallery/images/migrate-lab-0.0.4/versions/0.0.4"
-                  },
-                  "osDisk": {
-                    "name": "[parameters('osDiskName')]",
-                    "createOption": "FromImage",
-                    "managedDisk": {
-                      "storageAccountType": "[parameters('osDiskStorageAccountType')]"
-                    },
-                    "caching": "ReadWrite"
-                  }
-                },
-                "networkProfile": {
-                  "copy": [
-                    {
-                      "name": "networkInterfaces",
-                      "count": "[length(parameters('networkInterfaceIds'))]",
-                      "input": {
-                        "id": "[parameters('networkInterfaceIds')[copyIndex('networkInterfaces')]]",
-                        "properties": {
-                          "primary": "[equals(copyIndex('networkInterfaces'), 0)]"
-                        }
-                      }
-                    }
-                  ]
-                },
-                "diagnosticsProfile": "[if(not(empty(parameters('bootDiagnosticsStorageUri'))), createObject('bootDiagnostics', createObject('enabled', true(), 'storageUri', parameters('bootDiagnosticsStorageUri'))), null())]"
-              }
-            },
-            {
-              "condition": "[not(empty(parameters('dscConfiguration')))]",
-              "type": "Microsoft.Compute/virtualMachines/extensions",
-              "apiVersion": "2023-09-01",
-              "name": "[format('{0}/{1}', parameters('name'), 'InstallWindowsFeatures')]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "publisher": "Microsoft.Powershell",
-                "type": "DSC",
-                "typeHandlerVersion": "2.77",
-                "autoUpgradeMinorVersion": true,
-                "settings": "[parameters('dscConfiguration')]"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', parameters('name'))]"
-              ]
-            },
-            {
-              "condition": "[not(empty(parameters('customScriptExtension')))]",
-              "type": "Microsoft.Compute/virtualMachines/extensions",
-              "apiVersion": "2023-09-01",
-              "name": "[format('{0}/{1}', parameters('name'), format('{0}-vmext-hyperv', parameters('name')))]",
-              "location": "[parameters('location')]",
-              "properties": {
-                "publisher": "Microsoft.Compute",
-                "type": "CustomScriptExtension",
-                "typeHandlerVersion": "1.9",
-                "settings": "[parameters('customScriptExtension')]"
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('name'), 'InstallWindowsFeatures')]",
-                "[resourceId('Microsoft.Compute/virtualMachines', parameters('name'))]"
-              ]
-            }
-          ],
-          "outputs": {
-            "vmName": {
-              "type": "string",
-              "value": "[parameters('name')]"
-            },
-            "vmId": {
-              "type": "string",
-              "value": "[resourceId('Microsoft.Compute/virtualMachines', parameters('name'))]"
-            }
-          }
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'deploy-nic-primary')]",
-        "[resourceId('Microsoft.Resources/deployments', 'deploy-nic-secondary')]",
-        "[resourceId('Microsoft.Resources/deployments', 'deploy-storage')]"
-      ]
-    },
+    // crgar {
+    //   "type": "Microsoft.Resources/deployments",
+    //   "apiVersion": "2022-09-01",
+    //   "name": "deploy-windows-vm",
+    //   "properties": {
+    //     "expressionEvaluationOptions": {
+    //       "scope": "inner"
+    //     },
+    //     "mode": "Incremental",
+    //     "parameters": {
+    //       "name": {
+    //         "value": "[variables('vmName')]"
+    //       },
+    //       "location": {
+    //         "value": "[parameters('location')]"
+    //       },
+    //       "vmSize": {
+    //         "value": "Standard_E32as_v5"
+    //       },
+    //       "adminUsername": {
+    //         "value": "adminuser"
+    //       },
+    //       "adminPassword": {
+    //         "value": "[parameters('vmPassword')]"
+    //       },
+    //       "networkInterfaceIds": {
+    //         "value": [
+    //           "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-nic-primary'), '2022-09-01').outputs.nicId.value]",
+    //           "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-nic-secondary'), '2022-09-01').outputs.nicId.value]"
+    //         ]
+    //       },
+    //       "osDiskName": {
+    //         "value": "[format('{0}-os', variables('vmName'))]"
+    //       },
+    //       "osDiskStorageAccountType": {
+    //         "value": "Standard_LRS"
+    //       },
+    //       "dataDisks": {
+    //         "value": [
+    //           {
+    //             "name": "[format('{0}-disk1', variables('vmName'))]",
+    //             "createOption": "Empty",
+    //             "diskSizeGB": 1024,
+    //             "storageAccountType": "Standard_LRS",
+    //             "caching": "ReadOnly",
+    //             "imageReference": {
+    //               "communityGalleryImageId": "CommunityGalleries/crgardemogallery-3167aeab-db3a-49f3-a41b-52b828f29a3c/Images/migrate-lab-0.0.4/Versions/latest"
+    //             }
+    //           }
+    //         ]
+    //       },
+    //       "bootDiagnosticsStorageUri": {
+    //         "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-storage'), '2022-09-01').outputs.primaryBlobEndpoint.value]"
+    //       },
+    //       "dscConfiguration": {
+    //         "value": {
+    //           "wmfVersion": "latest",
+    //           "configuration": {
+    //             "url": "[variables('dscInstallWindowsFeaturesUri')]",
+    //             "script": "DSCInstallWindowsFeatures.ps1",
+    //             "function": "InstallWindowsFeatures"
+    //           }
+    //         }
+    //       },
+    //       "customScriptExtension": {
+    //         "value": {
+    //           "fileUris": [
+    //             "[variables('hvHostSetupScriptUri')]"
+    //           ],
+    //           "commandToExecute": "[format('powershell -ExecutionPolicy Unrestricted -File hvhostsetup.ps1 -NIC1IPAddress {0} -NIC2IPAddress {1} -GhostedSubnetPrefix {2} -VirtualNetworkPrefix {3}', reference(resourceId('Microsoft.Resources/deployments', 'deploy-nic-primary'), '2022-09-01').outputs.privateIpAddress.value, reference(resourceId('Microsoft.Resources/deployments', 'deploy-nic-secondary'), '2022-09-01').outputs.privateIpAddress.value, variables('ghostedSubnetAddressPrefix'), variables('addressSpaces')[0])]"
+    //         }
+    //       }
+    //     },
+    //     "template": {
+    //       "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    //       "contentVersion": "1.0.0.0",
+    //       "metadata": {
+    //         "_generator": {
+    //           "name": "bicep",
+    //           "version": "0.18.4.5664",
+    //           "templateHash": "6155868417354153081"
+    //         }
+    //       },
+    //       "parameters": {
+    //         "name": {
+    //           "type": "string",
+    //           "defaultValue": "crgar-migr-vm",
+    //           "metadata": {
+    //             "description": "The name of the virtual machine"
+    //           }
+    //         },
+    //         "location": {
+    //           "type": "string",
+    //           "defaultValue": "swedencentral",
+    //           "metadata": {
+    //             "description": "The location for the virtual machine"
+    //           }
+    //         },
+    //         "vmSize": {
+    //           "type": "string",
+    //           "defaultValue": "Standard_E32as_v5",
+    //           "metadata": {
+    //             "description": "The size of the virtual machine"
+    //           }
+    //         },
+    //         "adminUsername": {
+    //           "type": "string",
+    //           "defaultValue": "adminuser",
+    //           "metadata": {
+    //             "description": "The admin username"
+    //           }
+    //         },
+    //         "adminPassword": {
+    //           "type": "securestring",
+    //           "metadata": {
+    //             "description": "The admin password"
+    //           }
+    //         },
+    //         "networkInterfaceIds": {
+    //           "type": "array",
+    //           "metadata": {
+    //             "description": "Network interface IDs to attach"
+    //           }
+    //         },
+    //         "osDiskName": {
+    //           "type": "string",
+    //           "defaultValue": "crgar-migr-vm-os",
+    //           "metadata": {
+    //             "description": "OS disk name"
+    //           }
+    //         },
+    //         "osDiskStorageAccountType": {
+    //           "type": "string",
+    //           "defaultValue": "Standard_LRS",
+    //           "metadata": {
+    //             "description": "OS disk storage account type"
+    //           }
+    //         },
+    //         "dataDisks": {
+    //           "type": "array",
+    //           "defaultValue": [
+    //             {
+    //               "name": "crgar-migr-vm-disk1",
+    //               "createOption": "Empty",
+    //               "diskSizeGB": 1024,
+    //               "storageAccountType": "Standard_LRS",
+    //               "caching": "ReadOnly"
+    //             }
+    //           ],
+    //           "metadata": {
+    //             "description": "Data disk configuration"
+    //           }
+    //         },
+    //         "bootDiagnosticsStorageUri": {
+    //           "type": "string",
+    //           "defaultValue": "",
+    //           "metadata": {
+    //             "description": "Boot diagnostics storage account URI"
+    //           }
+    //         },
+    //         "dscConfiguration": {
+    //           "type": "object",
+    //           "defaultValue": {},
+    //           "metadata": {
+    //             "description": "DSC extension configuration"
+    //           }
+    //         },
+    //         "customScriptExtension": {
+    //           "type": "object",
+    //           "defaultValue": {},
+    //           "metadata": {
+    //             "description": "Custom script extension configuration"
+    //           }
+    //         },
+    //         "tags": {
+    //           "type": "object",
+    //           "defaultValue": {},
+    //           "metadata": {
+    //             "description": "Tags to apply to the virtual machine"
+    //           }
+    //         }
+    //       },
+    //       "resources": [
+    //         {
+    //           "type": "Microsoft.Compute/virtualMachines",
+    //           "apiVersion": "2023-09-01",
+    //           "name": "[parameters('name')]",
+    //           "location": "[parameters('location')]",
+    //           "tags": "[parameters('tags')]",
+    //           "properties": {
+    //             "hardwareProfile": {
+    //               "vmSize": "[parameters('vmSize')]"
+    //             },
+    //             "securityProfile": {
+    //               "securityType": "Standard"
+    //             },
+    //             "storageProfile": {
+    //               "copy": [
+    //                 {
+    //                   "name": "dataDisks",
+    //                   "count": "[length(parameters('dataDisks'))]",
+    //                   "input": {
+    //                     "lun": "[copyIndex('dataDisks')]",
+    //                     "name": "[parameters('dataDisks')[copyIndex('dataDisks')].name]",
+    //                     "createOption": "[parameters('dataDisks')[copyIndex('dataDisks')].createOption]",
+    //                     "diskSizeGB": "[parameters('dataDisks')[copyIndex('dataDisks')].diskSizeGB]",
+    //                     "managedDisk": {
+    //                       "storageAccountType": "[parameters('dataDisks')[copyIndex('dataDisks')].storageAccountType]"
+    //                     },
+    //                     "caching": "[parameters('dataDisks')[copyIndex('dataDisks')].caching]"
+    //                   }
+    //                 }
+    //               ],
+    //               "imageReference": {
+    //                 "communityGalleryImageId": "/subscriptions/96c2852b-cf88-4a55-9ceb-d632d25b83a4/resourceGroups/crgar-vm-gallery/providers/Microsoft.Compute/galleries/crgarvmgallery/images/migrate-lab-0.0.4/versions/0.0.4"
+    //               },
+    //               "osDisk": {
+    //                 "name": "[parameters('osDiskName')]",
+    //                 "createOption": "FromImage",
+    //                 "managedDisk": {
+    //                   "storageAccountType": "[parameters('osDiskStorageAccountType')]"
+    //                 },
+    //                 "caching": "ReadWrite"
+    //               }
+    //             },
+    //             "networkProfile": {
+    //               "copy": [
+    //                 {
+    //                   "name": "networkInterfaces",
+    //                   "count": "[length(parameters('networkInterfaceIds'))]",
+    //                   "input": {
+    //                     "id": "[parameters('networkInterfaceIds')[copyIndex('networkInterfaces')]]",
+    //                     "properties": {
+    //                       "primary": "[equals(copyIndex('networkInterfaces'), 0)]"
+    //                     }
+    //                   }
+    //                 }
+    //               ]
+    //             },
+    //             "diagnosticsProfile": "[if(not(empty(parameters('bootDiagnosticsStorageUri'))), createObject('bootDiagnostics', createObject('enabled', true(), 'storageUri', parameters('bootDiagnosticsStorageUri'))), null())]"
+    //           }
+    //         },
+    //         {
+    //           "condition": "[not(empty(parameters('dscConfiguration')))]",
+    //           "type": "Microsoft.Compute/virtualMachines/extensions",
+    //           "apiVersion": "2023-09-01",
+    //           "name": "[format('{0}/{1}', parameters('name'), 'InstallWindowsFeatures')]",
+    //           "location": "[parameters('location')]",
+    //           "properties": {
+    //             "publisher": "Microsoft.Powershell",
+    //             "type": "DSC",
+    //             "typeHandlerVersion": "2.77",
+    //             "autoUpgradeMinorVersion": true,
+    //             "settings": "[parameters('dscConfiguration')]"
+    //           },
+    //           "dependsOn": [
+    //             "[resourceId('Microsoft.Compute/virtualMachines', parameters('name'))]"
+    //           ]
+    //         },
+    //         {
+    //           "condition": "[not(empty(parameters('customScriptExtension')))]",
+    //           "type": "Microsoft.Compute/virtualMachines/extensions",
+    //           "apiVersion": "2023-09-01",
+    //           "name": "[format('{0}/{1}', parameters('name'), format('{0}-vmext-hyperv', parameters('name')))]",
+    //           "location": "[parameters('location')]",
+    //           "properties": {
+    //             "publisher": "Microsoft.Compute",
+    //             "type": "CustomScriptExtension",
+    //             "typeHandlerVersion": "1.9",
+    //             "settings": "[parameters('customScriptExtension')]"
+    //           },
+    //           "dependsOn": [
+    //             "[resourceId('Microsoft.Compute/virtualMachines/extensions', parameters('name'), 'InstallWindowsFeatures')]",
+    //             "[resourceId('Microsoft.Compute/virtualMachines', parameters('name'))]"
+    //           ]
+    //         }
+    //       ],
+    //       "outputs": {
+    //         "vmName": {
+    //           "type": "string",
+    //           "value": "[parameters('name')]"
+    //         },
+    //         "vmId": {
+    //           "type": "string",
+    //           "value": "[resourceId('Microsoft.Compute/virtualMachines', parameters('name'))]"
+    //         }
+    //       }
+    //     }
+    //   },
+    //   "dependsOn": [
+    //     "[resourceId('Microsoft.Resources/deployments', 'deploy-nic-primary')]",
+    //     "[resourceId('Microsoft.Resources/deployments', 'deploy-nic-secondary')]",
+    //     "[resourceId('Microsoft.Resources/deployments', 'deploy-storage')]"
+    //   ]
+    // },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2022-09-01",
@@ -1467,6 +1470,143 @@
           }
         }
       }
+    },
+    {
+      "type": "Microsoft.OffAzure/VMwareSites",
+      "apiVersion": "2020-07-10",
+      "name": "[concat(variables('projectName'), 'vmwaresite')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [],
+      "tags": {
+        "Migrate Project": "[variables('projectName')]"
+      },
+      "kind": "Migrate",
+      "properties": {
+        "applianceName": "[variables('applianceName')]",
+        "servicePrincipalIdentityDetails": {
+          "tenantId": "tenantId",
+          "applicationId": "applicationId",
+          "objectId": "objectId",
+          "audience": "audience",
+          "aadAuthority": "aadAuthority"
+        },
+        "discoverySolutionId": "[resourceId('Microsoft.Migrate/MigrateProjects/Solutions', variables('projectName'), 'Servers-Discovery-ServerDiscovery')]"
+      }
+    },
+    {
+      "type": "Microsoft.Migrate/assessmentprojects",
+      "apiVersion": "2020-05-01-preview",
+      "name": "[concat(variables('projectName'), 'asmproject')]",
+      "location": "[parameters('location')]",
+      "tags": {
+        "Migrate Project": "[variables('projectName')]"
+      },
+      "kind": "Migrate",
+      "properties": {
+        "projectStatus": "Active",
+        "assessmentSolutionId": "[resourceId('Microsoft.Migrate/MigrateProjects/Solutions', variables('projectName'), 'Servers-Assessment-ServerAssessment')]"
+      }
+    },
+    {
+      "type": "Microsoft.Migrate/assessmentprojects/vmwarecollectors",
+      "apiVersion": "2025-09-09-preview",
+      "name": "[concat(variables('projectName'), 'asmproject', '/', variables('projectName'), 'asmprojectvmwarecollector')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Migrate/assessmentprojects', concat(variables('projectName'), 'asmproject'))]",
+        "[resourceId('Microsoft.OffAzure/VMwareSites', concat(variables('projectName'), 'vmwaresite'))]"
+      ],
+      "tags": {
+        "Migrate Project": "[variables('projectName')]"
+      },
+      "kind": "Migrate",
+      "properties": {
+        "agentProperties": {
+          "id": "[reference(resourceId('Microsoft.OffAzure/VMwareSites', concat(variables('projectName'), 'vmwaresite')), '2020-07-10').agentDetails.id]",
+          "spnDetails": {
+            "authority": "authority",
+            "applicationId": "appId",
+            "audience": "audience",
+            "objectId": "objectid",
+            "tenantId": "tenantid"
+          }
+        },
+        "discoverySiteId": "[resourceId('Microsoft.OffAzure/VMwareSites', concat(variables('projectName'), 'vmwaresite'))]"
+      }
+    },
+    {
+      "type": "Microsoft.OffAzure/MasterSites",
+      "apiVersion": "2020-07-07",
+      "name": "[concat(variables('projectName'), 'mastersite')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OffAzure/VMwareSites', concat(variables('projectName'), 'vmwaresite'))]"
+      ],
+      "tags": {
+        "Migrate Project": "[variables('projectName')]"
+      },
+      "kind": "Migrate",
+      "properties": {
+        "sites": [
+          "[resourceId('Microsoft.OffAzure/VMwareSites', concat(variables('projectName'), 'vmwaresite'))]"
+        ],
+        "allowMultipleSites": true
+      }
+    },
+    {
+      "type": "Microsoft.OffAzure/MasterSites/WebAppSites",
+      "apiVersion": "2020-11-11-preview",
+      "name": "[concat(variables('projectName'), 'mastersite/', variables('projectName'), 'webappsite')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.OffAzure/MasterSites', concat(variables('projectName'), 'mastersite'))]"
+      ],
+      "tags": {
+        "Migrate Project": "[variables('projectName')]"
+      },
+      "kind": "Migrate",
+      "properties": {
+        "discoverySolutionId": "[resourceId('Microsoft.Migrate/MigrateProjects/Solutions', variables('projectName'), 'Servers-Discovery-ServerDiscovery')]",
+        "siteAppliancePropertiesCollection": [
+          {
+            "servicePrincipalIdentityDetails": {
+              "tenantId": "tenantId",
+              "applicationId": "applicationId",
+              "objectId": "objectId",
+              "audience": "audience",
+              "aadAuthority": "aadAuthority"
+            },
+            "applianceName": "[variables('applianceName')]"
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Migrate/assessmentprojects/webappcollectors",
+      "apiVersion": "2020-05-01-preview",
+      "name": "[concat(variables('projectName'), 'asmproject', '/', variables('projectName'), 'asmprojectwebappcollector')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Migrate/assessmentprojects', concat(variables('projectName'), 'asmproject'))]",
+        "[resourceId('Microsoft.OffAzure/MasterSites/WebAppSites', concat(variables('projectName'), 'mastersite'), concat(variables('projectName'), 'webappsite'))]"
+      ],
+      "tags": {
+        "Migrate Project": "[variables('projectName')]"
+      },
+      "kind": "Migrate",
+      "properties": {
+        "agentProperties": {
+          "agentId": "[reference(resourceId('Microsoft.OffAzure/MasterSites/WebAppSites', concat(variables('projectName'), 'mastersite'), concat(variables('projectName'), 'webappsite')), '2023-06-06').siteAppliancePropertiesCollection[0].agentDetails.id]",
+          "spnDetails": {
+            "authority": "authority",
+            "applicationId": "appId",
+            "audience": "audience",
+            "objectId": "objectid",
+            "tenantId": "tenantid"
+          }
+        },
+        "discoverySiteId": "[resourceId('Microsoft.OffAzure/MasterSites/WebAppSites', concat(variables('projectName'), 'mastersite'), concat(variables('projectName'), 'webappsite'))]"
+      }
     }
   ],
   "outputs": {
@@ -1474,10 +1614,10 @@
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-vnet'), '2022-09-01').outputs.vnetName.value]"
     },
-    "vmName": {
-      "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-windows-vm'), '2022-09-01').outputs.vmName.value]"
-    },
+    // crgar "vmName": {
+    //   "type": "string",
+    //   "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-windows-vm'), '2022-09-01').outputs.vmName.value]"
+    // },
     "publicIpAddress": {
       "type": "string",
       "value": "[reference(resourceId('Microsoft.Resources/deployments', 'deploy-public-ip'), '2022-09-01').outputs.publicIpAddress.value]"
