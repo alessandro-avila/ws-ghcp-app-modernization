@@ -688,7 +688,7 @@ function New-SqlCollector {
 ##############   ASSESSMENT FUNCTIONS   #############
 ######################################################
 
-function New-MigrationAssessment {
+function New-VMAssessment {
     param(
         [string]$SubscriptionId,
         [string]$ResourceGroupName,
@@ -700,12 +700,13 @@ function New-MigrationAssessment {
     Write-LogToBlob "Creating migration assessment"
     
     try {
-        $Headers = Get-AuthenticationHeaders
+        $assessmentName = "vm-assessment"
+        $headers = Get-AuthenticationHeaders
         
         $assessmentBody = @{
             "type" = "Microsoft.Migrate/assessmentprojects/assessments"
             "apiVersion" = "2024-03-03-preview"
-            "name" = "$AssessmentProjectName/assessment2"
+            "name" = "$AssessmentProjectName/$assessmentName"
             "location" = $Location
             "tags" = @{}
             "kind" = "Migrate"
@@ -751,7 +752,7 @@ migrateresources
             }
         } | ConvertTo-Json -Depth 10
 
-        $assessmentUri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Migrate/assessmentProjects/$AssessmentProjectName/assessments/assessment2?api-version=2024-03-03-preview"
+        $assessmentUri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Migrate/assessmentProjects/$AssessmentProjectName/assessments/${assessmentName}?api-version=2024-03-03-preview"
         
         Write-LogToBlob "Assessment URI: $assessmentUri"
         Write-LogToBlob "Assessment Body: $assessmentBody"
@@ -759,12 +760,18 @@ migrateresources
         $response = Invoke-RestMethod `
             -Uri $assessmentUri `
             -Method PUT `
-            -Headers $Headers `
+            -Headers $headers `
             -ContentType 'application/json' `
             -Body $assessmentBody
 
         Write-LogToBlob "Assessment created successfully"
         Write-LogToBlob "Assessment response: $($response | ConvertTo-Json -Depth 10)"
+
+        # Extract the assessment ID from the response
+        $assessmentId = $response.id
+        Write-LogToBlob "VM Assessment ID: $assessmentId"
+
+        return $assessmentId
     }
     catch {
         Write-LogToBlob "Failed to create migration assessment: $($_.Exception.Message)" "ERROR"
@@ -790,8 +797,7 @@ function New-SqlAssessment {
         $Headers = Get-AuthenticationHeaders
         
         # Generate random suffix for assessment name
-        $assessmentRandomSuffix = -join ((65..90) + (97..122) | Get-Random -Count 3 | ForEach-Object {[char]$_})
-        $assessmentName = "assessment$assessmentRandomSuffix"
+        $assessmentName = "sql-assessment"
         $apiVersion = "2024-03-03-preview"
         
         $assessmentBody = @{
@@ -880,7 +886,11 @@ migrateresources
         Write-LogToBlob "SQL Assessment created successfully"
         Write-LogToBlob "SQL Assessment response: $($response | ConvertTo-Json -Depth 10)"
         
-        return $assessmentName
+        # Extract the assessment ID from the response
+        $assessmentId = $response.id
+        Write-LogToBlob "SQL Assessment ID: $assessmentId"
+        
+        return $assessmentId
     }
     catch {
         Write-LogToBlob "Failed to create SQL assessment: $($_.Exception.Message)" "ERROR"
@@ -1044,20 +1054,22 @@ migrateresources
     }
 }
 
-function New-HeterogeneousAssessment {
+function New-GlobalAssessment {
     param(
         [string]$SubscriptionId,
         [string]$ResourceGroupName,
         [string]$AssessmentProjectName,
-        [string]$Location
+        [string]$Location,
+        [string]$VmAssessmentId,
+        [string]$SqlAssessmentId
     )
     
-    Write-LogToBlob "Creating Heterogeneous Assessment"
+    Write-LogToBlob "Creating Global Assessment"
     
     try {
         $Headers = Get-AuthenticationHeaders
         
-        # Generate random suffix for heterogeneous assessment name
+        # Generate random suffix for global assessment name
         $heteroAssessmentRandomSuffix = -join ((65..90) + (97..122) | Get-Random -Count 3 | ForEach-Object {[char]$_})
         $heteroAssessmentName = "default-all-workloads$heteroAssessmentRandomSuffix"
         $heteroApiVersion = "2024-03-03-preview"
@@ -1071,16 +1083,16 @@ function New-HeterogeneousAssessment {
             "kind" = "Migrate"
             "properties" = @{
                 "assessmentArmIds" = @(
-                    "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Migrate/AssessmentProjects/$AssessmentProjectName/assessments/assessment*",
-                    "/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Migrate/assessmentprojects/$AssessmentProjectName/sqlassessments/assessment*"
+                    $VmAssessmentId,
+                    $SqlAssessmentId
                 )
             }
         } | ConvertTo-Json -Depth 10
 
         $heteroAssessmentUri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Migrate/assessmentprojects/$AssessmentProjectName/heterogeneousAssessments/${heteroAssessmentName}?api-version=$heteroApiVersion"
         
-        Write-LogToBlob "Heterogeneous Assessment URI: $heteroAssessmentUri"
-        Write-LogToBlob "Heterogeneous Assessment Body: $heteroAssessmentBody"
+        Write-LogToBlob "Global Assessment URI: $heteroAssessmentUri"
+        Write-LogToBlob "Global Assessment Body: $heteroAssessmentBody"
         
         $response = Invoke-RestMethod -Uri $heteroAssessmentUri `
             -Method PUT `
@@ -1088,13 +1100,13 @@ function New-HeterogeneousAssessment {
             -ContentType 'application/json' `
             -Body $heteroAssessmentBody
 
-        Write-LogToBlob "Heterogeneous Assessment created successfully"
-        Write-LogToBlob "Heterogeneous Assessment response: $($response | ConvertTo-Json -Depth 10)"
+        Write-LogToBlob "Global Assessment created successfully"
+        Write-LogToBlob "Global Assessment response: $($response | ConvertTo-Json -Depth 10)"
         
         return $heteroAssessmentName
     }
     catch {
-        Write-LogToBlob "Failed to create Heterogeneous Assessment: $($_.Exception.Message)" "ERROR"
+        Write-LogToBlob "Failed to create Global Assessment: $($_.Exception.Message)" "ERROR"
         throw
     }
 }
@@ -1173,26 +1185,26 @@ function Invoke-AzureMigrateConfiguration {
         $sqlCollectorCreated = New-SqlCollector -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -EnvironmentName $environmentName -SqlSiteId $sqlSiteDetails.SiteId -SqlAgentId $sqlSiteDetails.AgentId
         
         # Step 8: Create assessments
-        New-MigrationAssessment -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -Location $location -VMwareSiteName $vmwareSiteName
-        $sqlAssessmentName = New-SqlAssessment -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -Location $location -VMwareSiteName $vmwareSiteName -MasterSiteName $masterSiteName -WebAppSiteName $webAppSiteName -SqlSiteName $sqlSiteName
+        $vmAssessmentId = New-VMAssessment -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -Location $location -VMwareSiteName $vmwareSiteName
+        $sqlAssessmentId = New-SqlAssessment -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -Location $location -VMwareSiteName $vmwareSiteName -MasterSiteName $masterSiteName -WebAppSiteName $webAppSiteName -SqlSiteName $sqlSiteName
         
         # Step 9: Create business cases
         $paasBusinessCaseName = New-BusinessCaseOptimizeForPaas -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -Location $location -VMwareSiteName $vmwareSiteName -MasterSiteName $masterSiteName -WebAppSiteName $webAppSiteName -SqlSiteName $sqlSiteName
         $iaasBusinessCaseName = New-BusinessCaseIaasOnly -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -Location $location -VMwareSiteName $vmwareSiteName -MasterSiteName $masterSiteName -WebAppSiteName $webAppSiteName -SqlSiteName $sqlSiteName
         
-        # Step 10: Create heterogeneous assessment
-        $heteroAssessmentName = New-HeterogeneousAssessment -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -Location $location
+        # Step 10: Create global assessment
+        $heteroAssessmentName = New-GlobalAssessment -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -AssessmentProjectName $assessmentProjectName -Location $location -VmAssessmentId $vmAssessmentId -SqlAssessmentId $sqlAssessmentId
         
         Write-LogToBlob "=== Azure Migrate Configuration Completed Successfully ==="
         Write-LogToBlob "Summary of created resources:"
         Write-LogToBlob "- VMware Collector: Synchronized"
         Write-LogToBlob "- WebApp Collector: $(if ($webAppCollectorCreated) { 'Created' } else { 'Skipped' })"
         Write-LogToBlob "- SQL Collector: $(if ($sqlCollectorCreated) { 'Created' } else { 'Skipped' })"
-        Write-LogToBlob "- VM Assessment: Created"
-        Write-LogToBlob "- SQL Assessment: $sqlAssessmentName"
+        Write-LogToBlob "- VM Assessment: ID: $vmAssessmentId"
+        Write-LogToBlob "- SQL Assessment ID: $sqlAssessmentId"
         Write-LogToBlob "- PaaS Business Case: $paasBusinessCaseName"
         Write-LogToBlob "- IaaS Business Case: $iaasBusinessCaseName"
-        Write-LogToBlob "- Heterogeneous Assessment: $heteroAssessmentName"
+        Write-LogToBlob "- Global Assessment: $heteroAssessmentName"
     }
     catch {
         Write-LogToBlob "=== Azure Migrate Configuration Failed ===" "ERROR"
