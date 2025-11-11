@@ -6,7 +6,7 @@
 
 $SkillableEnvironment = $true
 $EnvironmentName = "" # Set your environment name here for non-Skillable environments
-$ScriptVersion = "6.0.0"
+$ScriptVersion = "7.0.0"
 
 ######################################################
 ##############   INFRASTRUCTURE FUNCTIONS   #########
@@ -108,26 +108,16 @@ function New-AzureEnvironment {
 ##############   LOGGING FUNCTIONS   ################
 ######################################################
 
-# Script-level variable to track if logging has been initialized
+# Script-level variables to track logging state and buffer
 $script:LoggingInitialized = $false
+$script:LogBuffer = [System.Text.StringBuilder]::new()
+$script:StorageContext = $null
 
 function Write-LogToBlob {
     param(
         [string]$Message,
         [string]$Level = "INFO"
     )
-    
-    # Blob storage configuration for logging
-    $STORAGE_SAS_TOKEN = "?sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2026-01-30T22:09:19Z&st=2025-11-05T13:54:19Z&spr=https&sig=mBoL3bVHPGSniTeFzXZ5QdItTxaFYOrhXIOzzM2jvF0%3D"
-    $STORAGE_ACCOUNT_NAME = "azmdeploymentlogs"
-    $CONTAINER_NAME = "logs"
-    
-    # Auto-initialize logging if not already done
-    if ($SkillableEnvironment -eq $true -and -not $script:LoggingInitialized) {
-        Initialize-LogBlob -StorageAccountName $STORAGE_ACCOUNT_NAME -SasToken $STORAGE_SAS_TOKEN -ContainerName $CONTAINER_NAME -EnvironmentName $environmentName
-    }
-    
-    $LOG_BLOB_NAME = "$environmentName.log.txt"
     
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $logEntry = "[$timestamp] [$Level] $Message"
@@ -139,29 +129,17 @@ function Write-LogToBlob {
         return
     }
 
-    # Write to blob using Az.Storage commands
+    # Add to memory buffer and immediately write to blob
     try {
-        # Create storage context using SAS token
-        $ctx = New-AzStorageContext -StorageAccountName $STORAGE_ACCOUNT_NAME -SasToken $STORAGE_SAS_TOKEN        # Get existing blob content to append
-        $existingContent = ""
-        try {
-            Get-AzStorageBlobContent -Blob $LOG_BLOB_NAME -Container $CONTAINER_NAME -Context $ctx -Force -Destination "$env:TEMP\templog.txt" -ErrorAction Stop | Out-Null
-            $existingContent = Get-Content "$env:TEMP\templog.txt" -Raw -ErrorAction SilentlyContinue
-            Remove-Item "$env:TEMP\templog.txt" -Force -ErrorAction SilentlyContinue
-        }
-        catch {
-            # Blob doesn't exist yet, that's fine
-            Write-Host "Creating new log blob..." -ForegroundColor Yellow
-        }
+        # Add log entry to buffer
+        $null = $script:LogBuffer.AppendLine($logEntry)
         
-        # Append new log entry
-        $newContent = $existingContent + $logEntry + "`n"
-        
-        # Write back to blob
-        $tempFile = "$env:TEMP\$([System.Guid]::NewGuid()).txt"
-        Set-Content -Path $tempFile -Value $newContent -NoNewline
-        Set-AzStorageBlobContent -File $tempFile -Blob $LOG_BLOB_NAME -Container $CONTAINER_NAME -Context $ctx -Force | Out-Null
-        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+        # Immediately write entire buffer to blob (overwrite)
+        if($SkillableEnvironment) {
+            Write-BufferToBlob
+        } else {
+            Write-Host "Skillable environment disabled, skipping blob logging initialization" -ForegroundColor Yellow
+        }
         
     }
     catch {
@@ -172,53 +150,58 @@ function Write-LogToBlob {
     }
 }
 
-function Initialize-LogBlob {
-    param(
-        [string]$StorageAccountName,
-        [string]$SasToken,
-        [string]$ContainerName,
-        [string]$EnvironmentName
-    )
+function Write-BufferToBlob {
+    # Logging configuration constants
+    $STORAGE_SAS_TOKEN = "?sv=2024-11-04&ss=bfqt&srt=sco&sp=rwdlacupiytfx&se=2026-01-30T22:09:19Z&st=2025-11-05T13:54:19Z&spr=https&sig=mBoL3bVHPGSniTeFzXZ5QdItTxaFYOrhXIOzzM2jvF0%3D"
+    $STORAGE_ACCOUNT_NAME = "azmdeploymentlogs"
+    $CONTAINER_NAME = "logs"
+    $LOG_BLOB_NAME = "$environmentName.log.txt"
     
-    # Skip initialization if already done
-    if ($script:LoggingInitialized) {
-        return
-    }
-    
-    $LOG_BLOB_NAME = "$EnvironmentName.log.txt"
-    
-    if (-not $SkillableEnvironment) {
-        Write-Host "Skillable environment disabled, skipping blob logging initialization" -ForegroundColor Yellow
-        $script:LoggingInitialized = $true
-        return
-    }
+    # Auto-initialize logging if not already done
+    if (-not $script:LoggingInitialized) {
+        
 
+        try {
+            # Initialize script-level storage context
+            $script:StorageContext = New-AzStorageContext -StorageAccountName $STORAGE_ACCOUNT_NAME -SasToken $STORAGE_SAS_TOKEN
+            
+            # Initialize the log buffer with header
+            $initialLog = "=== Script [$ScriptVersion] execution started at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ===`nEnvironment: $environmentName`n"
+            $null = $script:LogBuffer.AppendLine($initialLog)
+            
+            Write-Host "Initialized log blob: $LOG_BLOB_NAME" -ForegroundColor Green
+            $script:LoggingInitialized = $true
+            
+        }
+        catch {
+            Write-Host "Failed to initialize log blob: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "Check if storage account and container exist" -ForegroundColor Red
+            Write-Host "Also verify SAS token permissions and expiration" -ForegroundColor Red
+            
+            # Fallback to local file
+            $localLogFile = ".\script-execution.log"
+            $initialLog = "=== Script execution started at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ===`nEnvironment: $environmentName`n"
+            Set-Content -Path $localLogFile -Value $initialLog -NoNewline
+            Write-Host "Created local log file as fallback: $localLogFile" -ForegroundColor Yellow
+            $script:LoggingInitialized = $true
+        }
+    }
+    
+    # Write the entire buffer content to blob, avoiding read operations
     try {
-        $ctx = New-AzStorageContext -StorageAccountName $StorageAccountName -SasToken $SasToken
-        
-        $initialLog = "=== Script [$ScriptVersion] execution started at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ===`nEnvironment: $EnvironmentName`n"
-        
-        $tempFile = "$env:TEMP\$([System.Guid]::NewGuid()).txt"
-        Set-Content -Path $tempFile -Value $initialLog -NoNewline
-        
-        Set-AzStorageBlobContent -File $tempFile -Blob $LOG_BLOB_NAME -Container $ContainerName -Context $ctx -Force | Out-Null
-        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
-        
-        Write-Host "Initialized log blob: $LOG_BLOB_NAME" -ForegroundColor Green
-        $script:LoggingInitialized = $true
-        
+        if ($script:StorageContext -and $script:LogBuffer.Length -gt 0) {
+            # Create temp file with buffer content
+            $tempFile = "$env:TEMP\$([System.Guid]::NewGuid()).txt"
+            Set-Content -Path $tempFile -Value $script:LogBuffer.ToString() -NoNewline
+            
+            # Overwrite blob with complete buffer content
+            Set-AzStorageBlobContent -File $tempFile -Blob $LOG_BLOB_NAME -Container $CONTAINER_NAME -Context $script:StorageContext -Force | Out-Null
+            Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+        }
     }
     catch {
-        Write-Host "Failed to initialize log blob: $($_.Exception.Message)" -ForegroundColor Red
-        Write-Host "Check if storage account '$StorageAccountName' and container '$ContainerName' exist" -ForegroundColor Red
-        Write-Host "Also verify SAS token permissions and expiration" -ForegroundColor Red
-        
-        # Fallback to local file
-        $localLogFile = ".\script-execution.log"
-        $initialLog = "=== Script execution started at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') ===`nEnvironment: $EnvironmentName`n"
-        Set-Content -Path $localLogFile -Value $initialLog -NoNewline
-        Write-Host "Created local log file as fallback: $localLogFile" -ForegroundColor Yellow
-        $script:LoggingInitialized = $true
+        Write-Host "Failed to write buffer to blob: $($_.Exception.Message)" -ForegroundColor Red
+        throw
     }
 }
 
