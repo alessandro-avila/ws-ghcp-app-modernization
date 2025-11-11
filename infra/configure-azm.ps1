@@ -206,70 +206,154 @@ function Write-BufferToBlob {
 ##############   MIGRATE TOOL FUNCTIONS   ###########
 ######################################################
 
-function Wait-ForAzureMigrateProject {
+function Wait-AzureMigrateResources {
     param(
         [string]$SubscriptionId,
         [string]$ResourceGroupName,
         [string]$MigrateProjectName,
-        [int]$MaxWaitTimeMinutes = 10
+        [string]$AssessmentProjectName,
+        [string]$VMwareSiteName,
+        [string]$MasterSiteName,
+        [string]$WebAppSiteName,
+        [string]$SqlSiteName,
+        [int]$MaxWaitTimeMinutes = 15
     )
     
-    Write-LogToBlob "Waiting for Azure Migrate project to be ready: $MigrateProjectName"
-    Write-LogToBlob "This project should be created by the Skillable ARM template"
+    Write-LogToBlob "Waiting for all Azure Migrate resources to be ready..."
+    Write-LogToBlob "These resources should be created by the Skillable ARM template"
     
     $Headers = Get-AuthenticationHeaders
-    $checkProjectApi = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Migrate/MigrateProjects/$MigrateProjectName" + "?api-version=2020-06-01-preview"
-    
     $startTime = Get-Date
     $timeout = $startTime.AddMinutes($MaxWaitTimeMinutes)
     $checkCount = 0
     
-    Write-LogToBlob "Checking project availability at URI: $checkProjectApi"
-    Write-LogToBlob "Will wait up to $MaxWaitTimeMinutes minutes for the project to be ready"
+    # Define all resource endpoints to check
+    $resourceChecks = @(
+        @{
+            Name = "Migrate Project"
+            Uri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Migrate/MigrateProjects/$MigrateProjectName" + "?api-version=2020-06-01-preview"
+            Required = $true
+        },
+        @{
+            Name = "Assessment Project"
+            Uri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.Migrate/assessmentprojects/$AssessmentProjectName" + "?api-version=2018-06-30-preview"
+            Required = $true
+        },
+        @{
+            Name = "VMware Site"
+            Uri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OffAzure/VMwareSites/$VMwareSiteName" + "?api-version=2024-12-01-preview"
+            Required = $true
+        },
+        @{
+            Name = "Master Site"
+            Uri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OffAzure/MasterSites/$MasterSiteName" + "?api-version=2024-12-01-preview"
+            Required = $true
+        },
+        @{
+            Name = "WebApp Site"
+            Uri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OffAzure/MasterSites/$MasterSiteName/WebAppSites/$WebAppSiteName" + "?api-version=2024-12-01-preview"
+            Required = $false
+        },
+        @{
+            Name = "SQL Site"
+            Uri = "https://management.azure.com/subscriptions/$SubscriptionId/resourceGroups/$ResourceGroupName/providers/Microsoft.OffAzure/MasterSites/$MasterSiteName/SqlSites/$SqlSiteName" + "?api-version=2024-12-01-preview"
+            Required = $false
+        }
+    )
+    
+    Write-LogToBlob "Will check $($resourceChecks.Count) resources and wait up to $MaxWaitTimeMinutes minutes"
     
     while ((Get-Date) -lt $timeout) {
         $checkCount++
-        # Start with shorter waits, then increase
+        # Progressive wait intervals
         $waitSeconds = if ($checkCount -le 3) { 15 } elseif ($checkCount -le 6) { 30 } else { 45 }
         
-        try {
-            Write-LogToBlob "Check #$checkCount - Verifying Azure Migrate project existence..."
-            $response = Invoke-RestMethod -Uri $checkProjectApi -Method GET -Headers $Headers -ContentType 'application/json'
-            
-            if ($response -and $response.properties) {
-                $provisioningState = $response.properties.provisioningState
-                Write-LogToBlob "Azure Migrate project found! Provisioning state: $provisioningState"
+        Write-LogToBlob "=== Resource Check #$checkCount ==="
+        
+        $allResourcesReady = $true
+        $readyResources = @()
+        $notReadyResources = @()
+        
+        foreach ($resource in $resourceChecks) {
+            try {
+                Write-LogToBlob "Checking $($resource.Name)..."
+                $response = Invoke-RestMethod -Uri $resource.Uri -Method GET -Headers $Headers -ContentType 'application/json'
                 
-                if ($provisioningState -eq "Succeeded" -or $provisioningState -eq "Created") {
-                    Write-LogToBlob "Azure Migrate project is ready and available for tool registration!"
-                    return $true
-                }
-                elseif ($provisioningState -eq "Failed") {
-                    Write-LogToBlob "Azure Migrate project provisioning failed!" "ERROR"
-                    throw "Azure Migrate project provisioning failed"
+                if ($response) {
+                    # Check provisioning state if it exists
+                    $provisioningState = if ($response.properties.provisioningState) { $response.properties.provisioningState } else { "Available" }
+                    
+                    if ($provisioningState -eq "Succeeded" -or $provisioningState -eq "Created" -or $provisioningState -eq "Available") {
+                        Write-LogToBlob "$($resource.Name): Ready (State: $provisioningState)"
+                        $readyResources += $resource.Name
+                    }
+                    elseif ($provisioningState -eq "Failed") {
+                        if ($resource.Required) {
+                            Write-LogToBlob "$($resource.Name): Provisioning failed!" "ERROR"
+                            throw "$($resource.Name) provisioning failed"
+                        }
+                        else {
+                            Write-LogToBlob "$($resource.Name): Provisioning failed (optional resource)" "WARN"
+                            $readyResources += $resource.Name + " (Failed-Optional)"
+                        }
+                    }
+                    else {
+                        Write-LogToBlob "$($resource.Name): Still provisioning (State: $provisioningState)"
+                        $notReadyResources += $resource.Name
+                        if ($resource.Required) {
+                            $allResourcesReady = $false
+                        }
+                    }
                 }
                 else {
-                    Write-LogToBlob "Azure Migrate project is still being provisioned (state: $provisioningState). Waiting $waitSeconds seconds..." "WARN"
+                    Write-LogToBlob "$($resource.Name): Response received but no data"
+                    $notReadyResources += $resource.Name
+                    if ($resource.Required) {
+                        $allResourcesReady = $false
+                    }
                 }
             }
-        }
-        catch {
-            $errorMessage = $_.Exception.Message
-            if ($errorMessage -like "*404*" -or $errorMessage -like "*Not Found*") {
-                Write-LogToBlob "Azure Migrate project not found yet (Check #$checkCount). Skillable ARM template is likely still creating resources. Waiting $waitSeconds seconds..." "WARN"
-            }
-            else {
-                Write-LogToBlob "Error checking Azure Migrate project: $errorMessage" "WARN"
+            catch {
+                $errorMessage = $_.Exception.Message
+                if ($errorMessage -like "*404*" -or $errorMessage -like "*Not Found*") {
+                    Write-LogToBlob "$($resource.Name): Not found yet"
+                    $notReadyResources += $resource.Name
+                    if ($resource.Required) {
+                        $allResourcesReady = $false
+                    }
+                }
+                else {
+                    Write-LogToBlob "$($resource.Name): Error - $errorMessage" "WARN"
+                    if ($resource.Required) {
+                        $notReadyResources += $resource.Name
+                        $allResourcesReady = $false
+                    }
+                }
             }
         }
         
+        # Summary of current status
+        Write-LogToBlob "--- Status Summary ---"
+        Write-LogToBlob "Ready: $($readyResources.Count)/$($resourceChecks.Count) - $($readyResources -join ', ')"
+        if ($notReadyResources.Count -gt 0) {
+            Write-LogToBlob "Not Ready: $($notReadyResources -join ', ')"
+        }
+        
+        if ($allResourcesReady) {
+            $elapsedMinutes = [math]::Round(((Get-Date) - $startTime).TotalMinutes, 1)
+            Write-LogToBlob "All required Azure Migrate resources are ready! (Total time: $elapsedMinutes minutes)"
+            return $true
+        }
+        
+        Write-LogToBlob "Waiting $waitSeconds seconds before next check..."
         Start-Sleep -Seconds $waitSeconds
     }
     
     $elapsedMinutes = [math]::Round(((Get-Date) - $startTime).TotalMinutes, 1)
-    Write-LogToBlob "Timeout waiting for Azure Migrate project to be ready after $elapsedMinutes minutes ($checkCount checks)" "ERROR"
+    Write-LogToBlob "Timeout waiting for Azure Migrate resources after $elapsedMinutes minutes ($checkCount checks)" "ERROR"
     Write-LogToBlob "The Skillable ARM template may still be deploying or there may be an issue with the deployment" "ERROR"
-    throw "Timeout waiting for Azure Migrate project '$MigrateProjectName' to be ready after $MaxWaitTimeMinutes minutes"
+    Write-LogToBlob "Not ready resources: $($notReadyResources -join ', ')" "ERROR"
+    throw "Timeout waiting for Azure Migrate resources to be ready after $MaxWaitTimeMinutes minutes"
 }
 
 function Register-MigrateTools {
@@ -1201,10 +1285,8 @@ function Invoke-AzureMigrateConfiguration {
             New-AzureEnvironment -EnvironmentName $environmentName -ResourceGroupName $resourceGroupName -Location $location
         }
         
-        # Step 3: Wait for Azure Migrate project to be ready (created by Skillable ARM template)
-        if ($SkillableEnvironment) {
-            Wait-ForAzureMigrateProject -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -MigrateProjectName $migrateProjectName
-        }
+        # Step 3: Wait for all Azure Migrate resources to be ready (created by Skillable ARM template)
+        Wait-AzureMigrateResources -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -MigrateProjectName $migrateProjectName -AssessmentProjectName $assessmentProjectName -VMwareSiteName $vmwareSiteName -MasterSiteName $masterSiteName -WebAppSiteName $webAppSiteName -SqlSiteName $sqlSiteName
         
         # Step 4: Register Azure Migrate tools
         Register-MigrateTools -SubscriptionId $subscriptionId -ResourceGroupName $resourceGroupName -MigrateProjectName $migrateProjectName
