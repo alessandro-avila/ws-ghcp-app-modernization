@@ -51,7 +51,40 @@ The objective of the lab is to ... TODO
 Each part is independent.
 
 ===
+@lab.Activity(Question1)
+===
+@lab.Activity(Question2)
+===
+@lab.Activity(Question3)
 
+> [+Hint] Need some help?
+> 
+> Navigate the the business case `buizzcaseevd`
+> Open the Overview page
+> Look at the Potential cost savings card and find the savings
+===
+@lab.Activity(Question4)
+
+> [+Hint] Need some help?
+> 
+> Navigate the the business case `buizzcaseevd`
+>
+> On the menu in the left, open `Business Case Reports` and navigate to `Current on-premises vs future`
+>
+> Look for Security row, and pay attention at the last column
+
+===
+@lab.Activity(Question5)
+
+> [+Hint] Need some help?
+> 
+> Navigate the the business case `buizzcaseevd`
+>
+> On the menu in the left, open `Business Case Reports` and navigate to `Current on-premises vs future`
+>
+> Look for Security row, and pay attention at the last column
+
+===
 # Part 1: Prepare a migration
 ### Understand our lab environment
 
@@ -140,22 +173,37 @@ Let's now create an Azure Migrate project
   	>
   	> ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0093.png)
 
-3. [ ] Paste the Key we got before TODO: Find the variable
+3. [ ] Paste the Key we got before. This will take several minutes. TODO: Find the variable
 	> [+Hint] If Copy paste does not work
   	>
   	> You can type the clipboard in the VM
-    > ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0093.png)
+    > ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0094.png)
 
-
-5. [ ] 
+4. [ ] Follow the instructions to login to your azure account.
+			 Remember that the credentials are in the Resources tab.
+6. [ ] In step 2, provide Hyper-V host credentials. 
+    > username: +++AdminUSer+++
+    > password: +++demo!pass123+++
+    > 
 
 
 
 ===
 
-TODO
+TODO: How to analyze the data!
+
+How do we plan what to migrate?
+
+Lets pick AirSonic, and I willteach you how to plan the migration
+
 Go to the already created lab
 Explore assessment
+Look at 6R
+- Software
+	Tagging example
+	Vulnerabilities
+
+
 Explore business case
 
 ===
@@ -191,7 +239,7 @@ TODO: It would be better to fork the repo, and be able to commit
 
   1. [ ] Open Visual Studio
   2. [ ] Select Clone a repository
-  3. [ ] In the `Repository Location`, paste this repo +++https://github.com/crgarcia12/migrate-modernize-lab.git+++
+  3. [ ] In the `Repository Location`, paste this repo ++https://github.com/crgarcia12/migrate-modernize-lab.git++
   4. [ ] Click Clone
 
 1.[] Let's open the solution now. In Visual Studio
@@ -268,6 +316,3 @@ Lets now find out if we can host it in a modern PaaS service
        Notice that the report can be exported and shared with other developers in the top right corner
 4. Now, let's run the Mandatory Issue: Windows Authenticatio. Click in `Run Task`
 > !IMAGE[0080.png](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0080.png)
-
-
-
