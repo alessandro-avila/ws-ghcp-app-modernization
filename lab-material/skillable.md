@@ -223,6 +223,14 @@ We will now provide Hyper-V host credentials. The appliance will use these crede
     
     password: +++demo!pass123+++
 
+    ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/00946.png)
+
+
+1. [ ] click in **Add discovery source** and add the IP address of the Hyper-V host: +++ +++
+
+    ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/00946.png)
+
+
 ===
 
 Doing an assessment can take time. That is why we have run an assessment in other servers for you.
