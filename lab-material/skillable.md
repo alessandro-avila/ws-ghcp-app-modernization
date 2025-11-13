@@ -30,13 +30,17 @@ The objective of the lab is to TODO
 Each part is independent.
 
 ===
-# Part 1: Prepare a migration
+# Excersie 1: Prepare a migration
+
+Click Next to start the excersise
+
+===
 ### Understand our lab environment
 
 The lab simulates a datacenter, by having a VM hosting server, and several VMs inside simulating different applications
 
-1. [ ] Open Edge, and head to the Azure Portal using the following link. This link enables some of the preview features we will need later on: +++http://aka.ms/migrate/disconnectedAppliance++
-1. [ ] Login using the credentials in the Resources tab.
+1. [ ] Open Edge, and head to the Azure Portal using the following link. This link enables some of the preview features we will need later on: ++https://aka.ms/migrate/disconnectedAppliance++
+1. [ ] Login using the credentials in the Resources tab. Notice that instead of using the Password, you are probably going to be requested to use the Temporary Access Password (TAP)
 
 > [+Hint] Troubles finding the resource tab?
 >
@@ -61,7 +65,7 @@ Let's explore whats inside in the next chapter
 This Virtual machine represents an on-premises server.
 It has nested virtualization. Inside you will find several VMs.
 
-> ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0020.png)
+> ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0020.png)
 
 In the windows menu, open the `Hyper-V Manager` to discover the inner VMs.
 
@@ -73,46 +77,88 @@ We will now create another VM, and install the Azure Migrate Appliance
 ### Create Azure Migrate Project
 Let's now create an Azure Migrate project
 
-1. [ ] Head back to the Azure Portal, and in the serch bar look for ++Azure Migrate++
+1. [ ] Head back to the Azure Portal, and in the serch bar look for +++Azure Migrate+++
 2. [ ] Click in ++Create Project++
-3. [ ] You can use the existent Resource Group, ++on-prem++
-4. [ ] Enter a project name. For example ++migrate-prj++
-5. [ ] Select a region. For example ++Central US++
+3. [ ] Use the existent Resource Group, +++on-prem+++
+4. [ ] Enter a project name. For example +++migrate-prj+++
+5. [ ] Select a region. For example +++@lab.CloudResourceGroup(on-prem).Location+++
 
 
 ===
 ### Download the Appliance
-1. [ ] Once the Azure Migrate Project Portal
-2. [ ] Select ++Start discovery++ -> ++Using appliance++ -> ++For Azure++
-3. [ ] Answer the virtualization question with ++Yes, with Hyper-V++
-4. [ ] Select a name for the appliance and click ++Generate key++
-5. [ ] Take note of the ++Project key++. You cannot retrieve it agian.
+
+Todo: Explain what is the appliance, and what we are doing
+
+
+1. [ ] Once in the Azure Migrate Project portal
+1. [ ] Select **Start discovery** -> **Using appliance** -> **For Azure**
+
+    > [+Hint] Screenshot
+    >
+    > ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0090.png)
+
+===
+### Download the Appliance
+
+In the Discover page
+
+> [+Hint] Screenshot
+>
+> ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0091.png)
+
+1. [ ] Select **Yes, with Hyper-V** in the dropdown
+1. [ ] Enter a name for the appliance. For example +++lab-appliance+++ and click **Generate key**
+1. [ ] Take note of the **Project key**. You cannot retrieve it agian.
        You can store it in here: @lab.TextBox(MigrateApplianceKey)
-6. [ ] Copy the Download link by doing right click into the **Download** button and click in Copy Linik. You can then go to the Hyper-V host VM and paste the link in the browser. This will download the VHD . ***Make sure you are doing this inside the Hyper-V VM!***. You can also use this link: ++https://go.microsoft.com/fwlink/?linkid=2191848++
-8. [ ] Copy and extract the downloaded VHD to the F drive
 
-> ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0090.png)
+1. [ ] Select **VHD file**    
+2. [ ] You need to download the appliance VHD, but **inside your on-prem server**. 
 
-> ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0091.png)
+	Copy the Download link by doing right click into the **Download** button and click in Copy Linik. 
+
+===
+### Extract the Appliance
+
+1. [ ] Go back to the Hyper-V host VM, open the browser and paste the link. This will download the VHD . 
+	
+    ***Make sure you are doing this inside the Hyper-V VM!***. You can also use this link: +++https://go.microsoft.com/fwlink/?linkid=2191848+++
+
+6. [ ] Copy and downloaded file to the F drive, and then extract its content
+
+> [+Hint] Screenshot
+>
+> ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/00914.png)
+
 ===
 
 ### Install the Appliance
 1. [ ] Open the Hyper-V manager
     > [+Hint] How to open Hyper-V manager
-    > In the Server Manager (you can open it in the windows menu) Select `Hyper-V`, right click in your server (number 3) and click in `Hyper-V Manager`
     >
-    > ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/00915.png)
+    > Open the **Server Manager** from the Windows menu. Select **Hyper-V**, right click in your server and click in **Hyper-V Manager**
+    >
+    > ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/00915.png)
 
-2. [ ] Select ++New++ -> ++Virtual Machine++ (look picture bellow for reference)
-3. [ ] Select a name
-4. [ ] In Location, specify +++F:\Hyper-V\Virtual Machines\appliance+++
-5. [ ] Select +++16384+++ MB of RAM
-6. [ ] Connection ++NestedSwitch++
-7. [ ] For the hard drive, find the extracted zip file in the F drive, and locate the vhd file
-8. [ ] Start the VM
-9. [ ] Initially, the VM will have a back scree. Wait for few minutes until it starts
+1. [ ] Select **New** -> **Virtual Machine**
+    > [+Hint] Create virtual machine
+    >
+	> ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0092.png)
 
-> ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0092.png)
+1. [ ] Click **Next** and insert a Name. For example, +++AZMAppliance+++
+1. [ ] Click **Store the virtual machine in a different location**, and specify +++F:\Hyper-V\Virtual Machines\appliance+++
+1. [ ] Use **Generation 1** and click **Next**
+1. [ ] Select +++16384+++ MB of RAM and click Next
+1. [ ] In **Connection**, select ++NestedSwitch++ and click Next
+1. [ ] Select **Use an existing virtual hard drive** 
+1. [ ] click in **Browse** and look for the extracted zip file in the **F:\\** drive.
+
+    > [+Hint] Create virtual machine
+    >
+	> ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/00925.png)
+
+1. [ ] Click Finish, and start the new VM by doing right click **Start** 
+1. [ ] Double click in the VM to open a Remote Desktop to it. Initially, it will have a back scree for several minutes until it starts
+
 
 ===
 
@@ -122,14 +168,14 @@ Let's now create an Azure Migrate project
 
 	> [+Hint] Do you know how to send Ctrl+Alt+Del to a VM?
   	>
-  	> ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0093.png)
+  	> ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0093.png)
 
 3. [ ] Paste the Key we got before. This will take several minutes.
        Your key was: ++@lab.Variable(MigrateApplianceKey)++
 	> [+Hint] If Copy & Paste does not work
   	>
   	> You can type the clipboard in the VM
-    > ![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0094.png)
+    > ![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0094.png)
 
 4. [ ] Follow the instructions to login to your azure account.
 			 Remember that the credentials are in the Resources tab.
@@ -142,7 +188,7 @@ Let's now create an Azure Migrate project
 Doing an assessment can take time. That is why we have run an assessment in other servers for you.
 1. [ ] Go to the Azure Portal, and open the already prepared project: ++lab@lab.LabInstance.Id-azm++
 
-![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0095.png)
+![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0095.png)
 
 ===
 
@@ -150,7 +196,7 @@ Doing an assessment can take time. That is why we have run an assessment in othe
 Doing an assessment can take time. That is why we have run an assessment in other servers for you.
 1. [ ] Go to the Azure Portal, and open the already prepared project: ++lab@lab.LabInstance.Id-azm++
 
-![Hyper-V architecture](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0095.png)
+![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0095.png)
 
 
 ===
@@ -331,6 +377,3 @@ Lets now find out if we can host it in a modern PaaS service
        Notice that the report can be exported and shared with other developers in the top right corner
 4. Now, let's run the Mandatory Issue: Windows Authenticatio. Click in `Run Task`
 > !IMAGE[0080.png](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0080.png)
-
-
-
