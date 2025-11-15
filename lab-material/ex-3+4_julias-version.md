@@ -1,4 +1,6 @@
 
+===
+
 # Excercise 3 - .NET App modernization
 
 Before we begin, make sure you are logged into GitHub: [https://github.com/enterprises/skillable-events](https://github.com/enterprises/skillable-events "https://github.com/enterprises/skillable-events")
@@ -180,18 +182,18 @@ TODO: See the lists of commit, if we managed to fork the repo
 
 4. Observe the changes GitHub Copilot is doing. Inbetween you have to allow certain changes like the editing of sensitive files or the execution of terminal commands. It also may ask you that it has now worked for a while and if it should continue. Allow it to continue. If you observe that it is stuck or working in the wrong direction you can always stop it by clicking the stop button on the lower right and adjust your prompt or start over completely by undoing the changes and opening a new chat.
 
-TODO: insert stop button image here
+!IMAGE[Screenshot 2025-11-15 at 17.13.37.png](instructions310257/Screenshot 2025-11-15 at 17.13.37.png)
 
 5. After GitHub Copilot has finished the upgrade it will try to build the application (we prompted it to do so). If not, you can prompt it to do it:
 
-*Test and run the application.* or *Build and run the application with `dotnet run`.*
+*Test and run the application.* or *Build and run the application with **dotnet run**.*
 
 If the build fails, it will try to fix the errors itself. It will have applied a lot of changes. Take your time to review them and click on *Keep* once you are done.
 
-TODO: insert keep image here
+!IMAGE[Screenshot 2025-11-15 at 17.37.14.png](instructions310257/Screenshot 2025-11-15 at 17.37.14.png)
 
 > [!Hint] If you have the feeling that GitHub Copilot or VS Code itself is buggy, you can reload the window. This helps in 98% of the cases, for the other 2% just restart VS Code.
-> TODO: add screenshot of reload window
+> !IMAGE[Screenshot 2025-11-15 at 17.41.41.png](instructions310257/Screenshot 2025-11-15 at 17.41.41.png)
 
 6. If the application is up and running, well done! You have successfully upgraded the application to .NET 9. Click next to continue.
 
@@ -217,7 +219,7 @@ Next we want to deploy our modernized application to Azure App Service.
 1. Open the Extensions tab again and install the extension *Bicep* (Microsoft's IaC language) and the *Azure MCP Server*
 2. Open a fresh new window of GitHub Copilot Chat and click on *Tools*. Checkmark the *Bicep* and *Azure MCP Server* tools and save the changes by clicking on *OK*. This ensures GitHub Copilot has all the tools it needs to deploy to Azure.
 
-TODO: insert image of tools window here
+!IMAGE[Screenshot 2025-11-15 at 18.06.19.png](instructions310257/Screenshot 2025-11-15 at 18.06.19.png)
 
 > [!Hint] The more tools you enable, the longer GitHub Copilot needs to respond. Be mindful of your tool selection.
 
@@ -233,12 +235,10 @@ Again you may be asked to allow certain executions of commands and changes. Allo
 
 4. When the deployment is successful, you will see the URL of your deployed application in the terminal window. Open it in your browser to verify that everything is working as expected.
 
-TODO: add screenshot of terminal with URL
+!IMAGE[Screenshot 2025-11-15 at 18.32.33.png](instructions310257/Screenshot 2025-11-15 at 18.32.33.png)
 
 5. Congratulations! You have successfully modernized and deployed your .NET application with the help of GitHub Copilot. Click next to continue.
 
 
 ===
 # Excercise 4 - Java App modernization (julia)
-
-
