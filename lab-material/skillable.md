@@ -370,7 +370,7 @@ A business case helps you understand where Azure brings the most value by estima
 
 You can create business cases for all workloads or scope them to specific applications. For this example, we'll create a scoped business case for the Contoso University application.
 
-3. [ ] Type a name for the business case: +++Contoso University+++
+3. [ ] Type a name for the business case: +++contosouniversity+++
 4. [ ] Select **Selected Scope**
 5. [ ] Click **Add applications**
 6. [ ] Select the **ContosoUniversity** application, then click **Next**
@@ -435,7 +435,7 @@ Can you find
 
 ## Azure Cost Assumptions
 
-1. [ ] Navigate to the **Azure cost** page
+1. [ ] Expand **Settings** and navigate to the **Azure cost** page
 
 Here you can adjust parameters to get more accurate estimates:
 - Target regions
@@ -443,16 +443,16 @@ Here you can adjust parameters to get more accurate estimates:
 - Migration timeline
 - Performance comfort factors
 
-Feel free to explore the business case further. You can also check if your ContosoUniversity business case has finished calculating.
+Feel free to explore the business case further.
+
+You can find more information [in the official documentation](https://learn.microsoft.com/en-us/azure/migrate/concepts-business-case-calculation?view=migrate)
 
 ===
 # Technical Assessment
 
-**Goal:** Evaluate technical readiness and migration complexity for your workloads
-
-While business cases focus on financial aspects, assessments evaluate technical readiness for migration. They analyze workloads for migration strategy, Azure readiness, right-sized targets, and costs.
-
-**Why assessments matter:** They ensure your workloads are technically ready for Azure and help you choose the right migration approach and Azure services.
+While business cases focus on financial aspects, **Assessments** help you choose the right migration approach and Azure services. <br>
+They evaluate technical readiness for migration. <br>
+Assessment focus on analyze workloads for migration strategy, Azure readiness and right-sized targets.
 
 ## Assessment Components
 
