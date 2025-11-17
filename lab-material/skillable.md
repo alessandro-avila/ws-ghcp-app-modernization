@@ -128,8 +128,10 @@ Let's now create an Azure Migrate project
 ===
 ### Download the Appliance
 
-TODO: Explain what the appliance is and what we are doing
+The **Azure Migrate appliance** is a preconfigured virtual machine that runs in your on‑premises environment. 
+It securely connects to Azure, discovers your servers, collects performance and configuration data, and sends that data to your Azure Migrate project so you can plan and right‑size your migration.
 
+In the next steps you will download the appliance image that will run inside your Hyper‑V host. Later, you will deploy it as a new VM, connect it to your Azure Migrate project using the project key you generate, and let it start discovering the VMs in this lab environment.
 
 1. [ ] Once in the Azure Migrate Project portal
 1. [ ] Select **Start discovery** -> **Using appliance** -> **For Azure**
@@ -676,7 +678,7 @@ You now have the foundation for informed migration decisions. In the following e
 
 ===
 
-# Excercise 3 - .NET App modernization
+# Exercise 3 - .NET App modernization
 
 **Goals:**
 - Clone and set up the Contoso University .NET application
