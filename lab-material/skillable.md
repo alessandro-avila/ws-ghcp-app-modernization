@@ -678,7 +678,7 @@ You now have the foundation for informed migration decisions. In the following e
 
 ===
 
-# Exercise 3 - .NET App modernization
+# Exercise 3: .NET App modernization
 
 **Goals:**
 - Clone and set up the Contoso University .NET application
@@ -807,7 +807,7 @@ You've successfully modernized a .NET application for Azure. In Exercise 4, you'
 
 ===
 
-# Exercise 4 - Java App modernization
+# Exercise 4: Java App modernization
 
 **Goals:**
 - Set up the Asset Manager Java application with local development environment
