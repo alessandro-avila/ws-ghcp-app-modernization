@@ -967,8 +967,9 @@ You can now close the application, by closing the console windows that were open
 ===
 
 1. Open the application in Visual Studio Code
-2. Select  `GitHub Copilot app modernization` extension in the Activity bar on the left
-3. Navigate the Extension Interface and click **Migrate to Azure** to begin the modernization process.
+2. Ensure that Claude Sonnet 4.5 is selected as the model in the GitHub Copilot chat pane.
+3. Select  `GitHub Copilot app modernization` extension in the Activity bar on the left
+4. Navigate the Extension Interface and click **Migrate to Azure** to begin the modernization process.
 	!IMAGE[screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/02001.png)
 
 <!-- 1. Allow the GitHub Copilot app modernization to sign in to GitHub 
@@ -1158,15 +1159,11 @@ The `progress.md` file provides real-time visibility into the migration process:
 
 ### Review Migration Completion Summary
 
-Upon successful completion of the validation process, the App Modernization tool presents a comprehensive migration summary report confirming the successful implementation of Azure Managed Identity authentication for PostgreSQL in your Spring Boot application.
+Upon successful completion of the validation process, the App Modernization tool presents a comprehensive migration summary report confirming the successful implementation of Azure Blob Storage in your java application.
 
-!IMAGE[module2-step17-migration-success-summary.png](instructions310381/module2-step17-migration-success-summary.png)
+!IMAGE[ovfbrre3.jpg](instructions310257/ovfbrre3.jpg)
 
-The migration has successfully transformed your application from **password-based** Postgres authentication to **Azure Managed Identity** for PostgreSQL, removing the need for credentials in code while maintaining application functionality. The process integrated Spring Cloud Azure dependencies, updated configuration properties for managed identity authentication, and ensured all validation stages passed including: **CVE scanning, build validation, consistency checks, and test execution**.
-
-> [!knowledge] Because the workload is based on Java Spring Boot, an advantage of this migration is that no Java code changes were required. Spring Boot's configuration-driven architecture automatically handles database connection details based on the configuration files. 
->
-> When switching from password authentication to managed identity, Spring reads the updated configuration and automatically uses the appropriate authentication method. Your existing Java code for database operations (such as saving pet records or retrieving owner information) continues to function as before, but now connects to the database using the more secure managed identity approach.
+The migration has successfully transformed your application from supporting Amazon S3 storage to instead supporting Azure Blob Storage while maintaining application functionality. The process integrated java Azure dependencies, updated configuration properties, and ensured all validation stages passed including: **CVE scanning, build validation, consistency checks, and test execution**.
 
 **Files Modified:**
 
@@ -1238,9 +1235,7 @@ Continue modernization your app by selecting another task and completing the mod
 
 ## Workshop Recap & What's Next
 
-**Congratulations!** You've successfully completed a comprehensive application modernization journey, transforming a legacy Spring Boot application into a cloud-native, secure, and scalable solution on Azure.
-
-!IMAGE[petclinic-on-azure.png](instructions310381/petclinic-on-azure.png)
+**Congratulations!** You've successfully completed a comprehensive application modernization journey, transforming a legacy application into a cloud-ready, secure, and scalable solution on Azure.
 
 ### What You Accomplished
 
@@ -1288,212 +1283,3 @@ Continue modernization your app by selecting another task and completing the mod
 ### Key Takeaways
 
 This workshop demonstrated how AI-powered tools can dramatically accelerate application modernization while maintaining code quality and security standards. The combination of GitHub Copilot App Modernization and Azure's managed services enables teams to focus on business value rather than infrastructure complexity.
-
-===
-
-### Help
-
-In this section you can find tips on how to troubleshoot your lab.
-
----
-
-#### Troubleshooting the local deployment
-
-**If the application fails to start:**
-1. Check Docker is running: `docker ps`
-2. Verify PostgreSQL container is healthy: `docker logs petclinic-postgres`
-3. Check application logs: `tail -f ~/app.log`
-4. Ensure port 8080 is not in use: `lsof -i :8080`
-
-**If the database connection fails:**
-1. Verify PostgreSQL container is running on port 5432: `docker port petclinic-postgres`
-2. Test database connectivity: `docker exec -it petclinic-postgres psql -U petclinic -d petclinic -c "SELECT 1;"`
-
----
-### Troubleshooting the Service Connector
-
-### Retrieve PostgreSQL Configuration from AKS Service Connector
-
-Before you can use **Containerization Assist**, you must first retrieve the PostgreSQL Service Connector configuration from your AKS cluster.
-
-This information ensures that your generated Kubernetes manifests are correctly wired to the database using managed identity and secret references.
-
-### Access AKS Service Connector and Retrieve PostgreSQL Configuration
-
-1. Open a new tab in the Edge browser and navigate to +++https://portal.azure.com/+++
-
-1. In the top search bar, type **aks-petclinic** and select the AKS Automic cluster.
-
-	!IMAGE[select-aks-petclinic.png](instructions310381/select-aks-petclinic.png)
-
-1. In the left-hand menu under **Settings**, select **Service Connector**.
-
-	!IMAGE[select-sc.jpg](instructions310381/select-sc.jpg)
-
-1.  You'll see the service connection that was automatically created **PostgreSQL connection** with a name that starts with **postgresflexible_** connecting to your PostgreSQL flexible server.
-
-1. Select the **DB for PostgreSQL flexible server** and click the **YAML snippet** button in the action bar
-
-	!IMAGE[yaml-snippet.png](instructions310381/yaml-snippet.png)
-
-1. Expand this connection to see the variables that were created by the `sc-postgresflexiblebft3u-secret` in the cluster
-
-	!IMAGE[sc-variables.png](instructions310381/sc-variables.png)
-
-### Retrieve PostgreSQL YAML Configuration
-
-The Azure Portal will display a YAML snippet showing how to use the Service Connector secrets for PostgreSQL connectivity.
-> [+] Service Connector YAML snippet
-> 
-> !IMAGE[sample-yaml.jpg](instructions310381/sample-yaml.jpg)
-
-> [!note] 
-> 1. The portal shows a sample deployment with workload identity configuration
-> 2. Key Elements:
->   - Service account: `sc-account-d4157fc8-73b5-4a68-acf4-39c8f22db792`
->   - Secret reference: `sc-postgresflexiblebft3u-secret`
->   - Workload identity label: `azure.workload.identity/use: "true"`
-> 
-> The Service Connector secret (`sc-postgresflexiblebft3u-secret` in this example), will contain the following variables:
-- AZURE_POSTGRESQL_HOST
-- AZURE_POSTGRESQL_PORT
-- AZURE_POSTGRESQL_DATABASE
-- AZURE_POSTGRESQL_CLIENTID (map to both AZURE_CLIENT_ID and AZURE_MANAGED_IDENTITY_NAME)
-- AZURE_POSTGRESQL_USERNAME
-
----
-
-#### Troubleshooting the application in AKS
-
-If for some reason you've made here and your deployment did not work, your deployment file should ressemble this example.
-
-> [!hint] Key areas to pay close attention to are:
-> - `azure.workload.identity/use: "true"`
-> - `serviceAccountName: sc-account-XXXX` this needs to reflect the service account created earlier during the PostgreSQL Service Connector
-> - `image: <acr-login-server>/petclinic:0.0.1` this should point to your ACR and image created earlier.
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: spring-petclinic
-  labels:
-    app: spring-petclinic
-    version: v1
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: spring-petclinic
-  template:
-    metadata:
-      labels:
-        app: spring-petclinic
-        version: v1
-        azure.workload.identity/use: "true"  # Enable Azure Workload Identity
-    spec:
-      serviceAccountName: sc-account-71b8f72b-9bed-472a-8954-9b946feee95c # change this
-      containers:
-      - name: spring-petclinic
-        image: acrpetclinic556325.azurecr.io/petclinic:0.0.1 # change this value
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 8080
-          name: http
-          protocol: TCP
-        
-        # Environment variables from Azure Service Connector secret
-        env:
-        # Azure Workload Identity - automatically injected by webhook
-        # AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_FEDERATED_TOKEN_FILE are set by workload identity
-        
-        # Map PostgreSQL host from secret - with Azure AD authentication parameters
-        - name: POSTGRES_URL
-          value: "jdbc:postgresql://$(AZURE_POSTGRESQL_HOST):$(AZURE_POSTGRESQL_PORT)/$(AZURE_POSTGRESQL_DATABASE)?sslmode=require&authenticationPluginClassName=com.azure.identity.extensions.jdbc.postgresql.AzurePostgresqlAuthenticationPlugin"
-        - name: POSTGRES_USER
-          valueFrom:
-            secretKeyRef:
-              name: sc-postgresflexible4q7w6-secret # change this value
-              key: AZURE_POSTGRESQL_USERNAME
-        # Client ID is also needed for Spring Cloud Azure
-        - name: AZURE_CLIENT_ID
-          valueFrom:
-            secretKeyRef:
-              name: sc-postgresflexible4q7w6-secret # change this value
-              key: AZURE_POSTGRESQL_CLIENTID
-              optional: true
-        - name: AZURE_MANAGED_IDENTITY_NAME
-          valueFrom:
-            secretKeyRef:
-              name: sc-postgresflexible4q7w6-secret # change this value
-              key: AZURE_POSTGRESQL_CLIENTID
-        - name: AZURE_POSTGRESQL_HOST
-          valueFrom:
-            secretKeyRef:
-              name: sc-postgresflexible4q7w6-secret # change this value
-              key: AZURE_POSTGRESQL_HOST
-        - name: AZURE_POSTGRESQL_PORT
-          valueFrom:
-            secretKeyRef:
-              name: sc-postgresflexible4q7w6-secret # change this value
-              key: AZURE_POSTGRESQL_PORT
-        - name: AZURE_POSTGRESQL_DATABASE
-          valueFrom:
-            secretKeyRef:
-              name: sc-postgresflexible4q7w6-secret # change this value
-              key: AZURE_POSTGRESQL_DATABASE
-        - name: SPRING_PROFILES_ACTIVE
-          value: "postgres"
-        # Spring Cloud Azure configuration for workload identity
-        - name: SPRING_CLOUD_AZURE_CREDENTIAL_MANAGED_IDENTITY_ENABLED
-          value: "true"
-        - name: SPRING_DATASOURCE_AZURE_PASSWORDLESS_ENABLED
-          value: "true"        
-        # Make all secret keys available in the pod
-        envFrom:
-        - secretRef:
-            name: sc-postgresflexible4q7w6-secret # change this value
-        # Health check probes
-        livenessProbe:
-          httpGet:
-            path: /actuator/health
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 60
-          periodSeconds: 10
-          timeoutSeconds: 3
-          successThreshold: 1
-          failureThreshold: 3
-        readinessProbe:
-          httpGet:
-            path: /actuator/health
-            port: 8080
-            scheme: HTTP
-          initialDelaySeconds: 30
-          periodSeconds: 5
-          timeoutSeconds: 3
-          successThreshold: 1
-          failureThreshold: 3
-        # Resource limits and requests
-        resources:
-          requests:
-            memory: "512Mi"
-            cpu: "500m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-        # Security context
-        securityContext:
-          runAsNonRoot: true
-          runAsUser: 1000
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false
-          capabilities:
-            drop:
-            - ALL
-      # Pod security context
-      securityContext:
-        fsGroup: 1000
-      # Restart policy
-      restartPolicy: Always
-```
