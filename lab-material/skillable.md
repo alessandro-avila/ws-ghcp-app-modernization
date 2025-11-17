@@ -391,7 +391,8 @@ Let's create an application for Contoso University:
 3. [ ] Click **Define application** -> **New application**
 4. [ ] In **Name**, enter +++ContosoUniversity+++
 5. [ ] In **Type**, select **Custom** (we have source code access)
-6. [ ] In **Workloads**, filter for +++ContosoUniversity+++ and select all results
+6. [ ] In **Workloads**, click in **Link Workloads**
+7. [ ] In the Filter search bar, type +++ContosoUniversity+++ and select all results and click **Next**
 
 > [+Hint] Screenshot
 >
@@ -412,7 +413,12 @@ Let's create an application for Contoso University:
 > When you migrate to Azure PaaS, the set of workloads in the **current environment** and the **target environment** may differ. Continuing the same example, you might migrate the SQL database to **Azure SQL Database** and the Tomcat web application to **Azure App Service**, while the original VM is decommissioned. In that target state, you now have **two workloads** (the database and the web application), even though you started with three on the on-premises VM.
     
 
-7. [ ] In **Properties**, select any criticality and complexity, then create the application
+7. [ ] In **Properties**, select any criticality and complexity, then click in **Review + Create** and then **Create**
+
+You might receive an error message like the one bellow. This is only happening because we are using Preview features from the Azure Portal. Dismiss the error message and continue to the next section
+
+![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/0014.png)
+
 
 
 ===
