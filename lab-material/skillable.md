@@ -370,10 +370,26 @@ Let's create an application for Contoso University:
 4. [ ] In **Name**, enter +++ContosoUniversity+++
 5. [ ] In **Type**, select **Custom** (we have source code access)
 6. [ ] In **Workloads**, filter for +++ContosoUniversity+++ and select all results
+
+> [+Hint] Screenshot
+>
+>![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/01002.png)
+
+> [!Knowledge] Important: What is a **workload** in Azure Migrate?
+>
+> A workload is a distinct application or component that can be discovered, assessed, and migrated independently.
+>
+>
+> For example, if a single VM hosts:
+> - the **VM** itself
+> - a **SQL database**
+> - a **Tomcat web application**
+>
+> then there are **three workloads** on that VM (the VM, the database, and the web application). Each workload can follow its own migration path and target Azure service.
+>
+> When you migrate to Azure PaaS, the set of workloads in the **current environment** and the **target environment** may differ. Continuing the same example, you might migrate the SQL database to **Azure SQL Database** and the Tomcat web application to **Azure App Service**, while the original VM is decommissioned. In that target state, you now have **two workloads** (the database and the web application), even though you started with three on the on-premises VM.
     
-    > [+Hint] Screenshot
-    >
-	>![Screenshot](https://raw.githubusercontent.com/crgarcia12/migrate-modernize-lab/refs/heads/main/lab-material/media/01002.png)
+
 7. [ ] In **Properties**, select any criticality and complexity, then create the application
 
 
