@@ -49,7 +49,6 @@ After completing this MicroHack you will:
 - Use GitHub Copilot to modernize .NET Framework applications to modern .NET
 - Leverage AI to migrate Java applications from AWS dependencies to Azure services
 - Deploy modernized applications to Azure App Service
-- Implement cloud-native authentication and storage patterns
 
 ## MicroHack Challenges
 
