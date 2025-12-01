@@ -12,8 +12,6 @@ This MicroHack provides hands-on experience with the entire migration lifecycle 
 - Azure Migrate for discovery and assessment
 - GitHub Copilot for AI-powered code modernization
 - Azure App Service for hosting modernized applications
-- Microsoft Entra ID for cloud authentication
-- Azure Blob Storage for cloud-native storage
 
 ## Environment creation
 
