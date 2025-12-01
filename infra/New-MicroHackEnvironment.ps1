@@ -170,7 +170,7 @@ function New-AzureEnvironment {
         $templateFileName = "lab197959-template-v6.json"
         $templateFilePath = ".\templates\$templateFileName"
 
-        if(Test-Path $templateFilePath) {
+        if (Test-Path $templateFilePath) {
             Write-LogToBlob "Local ARM template found: $templateFilePath"
         } else {
             Write-LogToBlob "Local ARM template not found. Downloading from GitHub..." "WARN"
