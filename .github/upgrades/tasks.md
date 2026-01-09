@@ -22,7 +22,7 @@ This document tracks the execution of the ContosoUniversity project upgrade from
 
 ---
 
-### [ ] TASK-002: Atomic framework and dependency upgrade with ASP.NET Core migration
+### [▶] TASK-002: Atomic framework and dependency upgrade with ASP.NET Core migration
 **References**: Plan §Phase 1, Plan §Phase 2, Plan §Phase 3, Plan §Package Update Reference, Plan §Breaking Changes Catalog
 
 - [ ] (1) Convert ContosoUniversity.csproj to SDK-style format per Plan §Phase 1
@@ -66,4 +66,6 @@ This document tracks the execution of the ContosoUniversity project upgrade from
 - [ ] (5) Commit test fixes with message: "TASK-003: Complete testing and validation"
 
 ---
+
+
 

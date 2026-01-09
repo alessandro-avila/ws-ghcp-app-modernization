@@ -1,37 +1,36 @@
 using System;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using ContosoUniversity.Infrastructure;
 using ContosoUniversity.Services;
 using ContosoUniversity.Models;
+using ContosoUniversity.Data;
 
 namespace ContosoUniversity.Controllers
 {
-    public class MessageQueueTestController : Controller
+    public class MessageQueueTestController : BaseController
     {
-        private readonly NotificationService _notificationService;
-
-        public MessageQueueTestController()
+        public MessageQueueTestController(SchoolContext context, INotificationService notificationService)
+            : base(context, notificationService)
         {
-            _notificationService = new NotificationService();
         }
 
-        public ActionResult Index()
+        public IActionResult Index()
         {
             ViewBag.Message = "Message Queue Test Page";
             return View();
         }
 
         [HttpPost]
-        public ActionResult SendTestNotification()
+        public IActionResult SendTestNotification()
         {
             try
             {
-                _notificationService.SendNotification(
+                notificationService.SendNotification(
                     "Test", 
                     Guid.NewGuid().ToString(), 
                     "Test Entity", 
                     EntityOperation.CREATE, 
-                    User.Identity.Name ?? "TestUser"
+                    User.Identity?.Name ?? "TestUser"
                 );
 
                 ViewBag.Message = "Test notification sent successfully!";
@@ -47,7 +46,7 @@ namespace ContosoUniversity.Controllers
         }
 
         [HttpPost]
-        public ActionResult ReceiveNotifications()
+        public IActionResult ReceiveNotifications()
         {
             try
             {
@@ -56,7 +55,7 @@ namespace ContosoUniversity.Controllers
                 
                 // Try to receive up to 10 notifications
                 int count = 0;
-                while ((notification = _notificationService.ReceiveNotification()) != null && count < 10)
+                while ((notification = notificationService.ReceiveNotification()) != null && count < 10)
                 {
                     notifications.Add(notification);
                     count++;
@@ -76,7 +75,7 @@ namespace ContosoUniversity.Controllers
         }
 
         [HttpPost]
-        public ActionResult TestBasicQueue()
+        public IActionResult TestBasicQueue()
         {
             try
             {
@@ -107,7 +106,7 @@ namespace ContosoUniversity.Controllers
         }
 
         [HttpPost]
-        public ActionResult GetQueueStatus()
+        public IActionResult GetQueueStatus()
         {
             try
             {
@@ -136,15 +135,6 @@ namespace ContosoUniversity.Controllers
             }
 
             return View("Index");
-        }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                _notificationService?.Dispose();
-            }
-            base.Dispose(disposing);
         }
     }
 }
