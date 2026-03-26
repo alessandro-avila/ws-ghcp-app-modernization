@@ -1,5 +1,5 @@
 using System;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using ContosoUniversity.Infrastructure;
 using ContosoUniversity.Services;
 using ContosoUniversity.Models;
@@ -15,14 +15,14 @@ namespace ContosoUniversity.Controllers
             _notificationService = new NotificationService();
         }
 
-        public ActionResult Index()
+        public IActionResult Index()
         {
             ViewBag.Message = "Message Queue Test Page";
             return View();
         }
 
         [HttpPost]
-        public ActionResult SendTestNotification()
+        public IActionResult SendTestNotification()
         {
             try
             {
@@ -31,7 +31,7 @@ namespace ContosoUniversity.Controllers
                     Guid.NewGuid().ToString(), 
                     "Test Entity", 
                     EntityOperation.CREATE, 
-                    User.Identity.Name ?? "TestUser"
+                    User.Identity?.Name ?? "TestUser"
                 );
 
                 ViewBag.Message = "Test notification sent successfully!";
@@ -47,7 +47,7 @@ namespace ContosoUniversity.Controllers
         }
 
         [HttpPost]
-        public ActionResult ReceiveNotifications()
+        public IActionResult ReceiveNotifications()
         {
             try
             {

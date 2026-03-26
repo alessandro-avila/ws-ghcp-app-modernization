@@ -1,5 +1,4 @@
 using System;
-using System.Configuration;
 using ContosoUniversity.Models;
 using ContosoUniversity.Infrastructure;
 using Newtonsoft.Json;
@@ -11,10 +10,10 @@ namespace ContosoUniversity.Services
         private readonly string _queuePath;
         private readonly MessageQueue _queue;
 
-        public NotificationService()
+        public NotificationService(string? queuePath = null)
         {
-            // Get queue path from configuration or use default
-            _queuePath = ConfigurationManager.AppSettings["NotificationQueuePath"] ?? @".\Private$\ContosoUniversityNotifications";
+            // Use provided queue path or default
+            _queuePath = queuePath ?? @".\Private$\ContosoUniversityNotifications";
             
             // Ensure the queue exists
             if (!MessageQueue.Exists(_queuePath))
