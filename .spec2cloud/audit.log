@@ -28,3 +28,16 @@
 [2026-05-13T02:15:01Z] phase=testability-gate step=phase-transition action=advance result=done message="testability-gate complete -> path-selection (user pre-hinted rewrite + security; awaiting confirmation)"
 [2026-05-13T02:25:00Z] phase=path-selection step=human-gate action=human-approval result=approved message="user=alavil selected rewrite + security (option a)"
 [2026-05-13T02:25:01Z] phase=path-selection step=phase-transition action=advance result=done message="path-selection complete -> phase-A (assessments)"
+[2026-05-13T02:30:00Z] phase=phase-A step=skill-invoke skill=rewrite-assessment result=start message="rewrite-assessment skill invoked autonomously per user delegation"
+[2026-05-13T02:55:00Z] phase=phase-A step=rewrite-assessment action=generate result=done file=specs/assessment/rewrite.md target-stack="ASP.NET Core 8 MVC + EF Core 8 + SQL Server (autonomous)" migration-pattern="per-controller big-bang within spec2cloud increments" increments=8
+[2026-05-13T02:30:01Z] phase=phase-A step=skill-invoke skill=security-assessment result=start message="security-assessment skill invoked autonomously per user delegation"
+[2026-05-13T03:00:00Z] phase=phase-A step=security-assessment action=generate result=done file=specs/assessment/security.md level=3 findings="2C/4H/7M/4L"
+[2026-05-13T03:01:00Z] phase=phase-A step=adr action=create result=done adr=ADR-002 slug=rewrite-vs-modernize file=specs/adrs/adr-002-rewrite-vs-modernize.md decision=rewrite-to-net8
+[2026-05-13T03:02:00Z] phase=phase-A step=adr action=create result=done adr=ADR-003 slug=target-stack-aspnet-core-8 file=specs/adrs/adr-003-target-stack-aspnet-core-8.md autonomous=true reversible=true
+[2026-05-13T03:03:00Z] phase=phase-A step=adr action=create result=done adr=ADR-004 slug=migration-pattern file=specs/adrs/adr-004-migration-pattern.md decision=per-controller-big-bang
+[2026-05-13T03:04:00Z] phase=phase-A step=adr action=create result=done adr=ADR-005 slug=authentication file=specs/adrs/adr-005-authentication.md addresses="SEC-CRITICAL-001,SEC-CRITICAL-002,SEC-LOW-003"
+[2026-05-13T03:05:00Z] phase=phase-A step=adr action=create result=done adr=ADR-006 slug=authorization file=specs/adrs/adr-006-authorization.md addresses="SEC-CRITICAL-001,SEC-HIGH-001,SEC-HIGH-002"
+[2026-05-13T03:06:00Z] phase=phase-A step=adr action=create result=done adr=ADR-007 slug=secrets-management file=specs/adrs/adr-007-secrets-management.md addresses="SEC-MEDIUM-004,secrets-scan"
+[2026-05-13T03:07:00Z] phase=phase-A step=cross-ref-fixup action=update result=done message="security.md and rewrite.md ADR-004 descriptive label updated from 'strangler-fig strategy' to 'migration pattern - per-controller big-bang within spec2cloud increments' to match the actual ADR-004 decision"
+[2026-05-13T03:08:00Z] phase=phase-A step=state-update action=write result=done message="state.json updated: lastUpdated, brownfield.assessments (rewrite + security), adrs.records (ADR-002..ADR-007), adrs.nextNumber=8, humanGates.phaseA_assessment_review=null"
+[2026-05-13T03:10:00Z] phase=phase-A step=phase-transition action=ready-for-review result=pending message="phase-A complete (rewrite.md + security.md + 6 ADRs) -> awaits human review before phase-P planning"

@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-A",
-  "lastUpdated": "2026-05-13T02:25:00Z",
+  "lastUpdated": "2026-05-13T03:10:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -20,7 +20,8 @@
     "testability_gate_adr": "ADR-001",
     "testability_gate_outcome": "Track A (full green baseline) for all 8 FRDs",
     "path_selection": "approved",
-    "path_selection_outcome": "selected: rewrite + security (option a)"
+    "path_selection_outcome": "selected: rewrite + security (option a)",
+    "phaseA_assessment_review": null
   },
   "brownfield": {
     "targetApp": "ContosoUniversity",
@@ -165,10 +166,42 @@
     "featureTracks": null,
     "greenBaseline": null,
     "behavioralDocs": null,
-    "selectedPaths": ["rewrite", "security"]
+    "selectedPaths": ["rewrite", "security"],
+    "assessments": {
+      "rewrite": {
+        "path": "specs/assessment/rewrite.md",
+        "completedAt": "2026-05-13T03:00:00Z",
+        "decision": "rewrite-to-aspnet-core-8",
+        "targetStack": "ASP.NET Core 8 MVC + EF Core 8 + SQL Server (autonomous)",
+        "migrationPattern": "per-controller-big-bang-within-spec2cloud-increments",
+        "incrementCount": 8,
+        "adrs": ["ADR-002", "ADR-003", "ADR-004"]
+      },
+      "security": {
+        "path": "specs/assessment/security.md",
+        "completedAt": "2026-05-13T03:00:00Z",
+        "level": 3,
+        "findings": {
+          "critical": 2,
+          "high": 4,
+          "medium": 7,
+          "low": 4,
+          "total": 17
+        },
+        "topRisks": [
+          "SEC-CRITICAL-001: no authentication on any endpoint",
+          "SEC-CRITICAL-002: hardcoded 'System' actor in audit trail",
+          "SEC-HIGH-001: no CSRF protection on NotificationsController.MarkAsRead",
+          "SEC-HIGH-002: unrestricted file upload on Courses",
+          "SEC-HIGH-003: SQL injection risk in raw queries",
+          "SEC-HIGH-004: missing security headers"
+        ],
+        "adrs": ["ADR-005", "ADR-006", "ADR-007"]
+      }
+    }
   },
   "adrs": {
-    "nextNumber": 2,
+    "nextNumber": 8,
     "records": [
       {
         "number": 1,
@@ -178,6 +211,73 @@
         "path": "specs/adrs/adr-001-testability-gate.md",
         "date": "2026-05-13",
         "recommendation": { "testability": "full", "track": "A" }
+      },
+      {
+        "number": 2,
+        "slug": "rewrite-vs-modernize",
+        "title": "Rewrite to .NET 8 vs In-Place Modernize on .NET Framework 4.8",
+        "status": "accepted",
+        "path": "specs/adrs/adr-002-rewrite-vs-modernize.md",
+        "date": "2026-05-13",
+        "phase": "phase-A",
+        "drivenBy": "rewrite-assessment",
+        "decision": "rewrite-to-net8"
+      },
+      {
+        "number": 3,
+        "slug": "target-stack-aspnet-core-8",
+        "title": "Target Stack — ASP.NET Core 8 MVC + EF Core 8 + SQL Server",
+        "status": "accepted",
+        "path": "specs/adrs/adr-003-target-stack-aspnet-core-8.md",
+        "date": "2026-05-13",
+        "phase": "phase-A",
+        "drivenBy": "rewrite-assessment",
+        "autonomous": true,
+        "reversible": true
+      },
+      {
+        "number": 4,
+        "slug": "migration-pattern",
+        "title": "Migration Pattern — Per-Controller Big-Bang Within spec2cloud Increments (No In-Process Strangler-Fig)",
+        "status": "accepted",
+        "path": "specs/adrs/adr-004-migration-pattern.md",
+        "date": "2026-05-13",
+        "phase": "phase-A",
+        "drivenBy": "rewrite-assessment",
+        "decision": "per-controller-big-bang"
+      },
+      {
+        "number": 5,
+        "slug": "authentication",
+        "title": "Authentication Mechanism — ASP.NET Core Identity (Dev) + Microsoft Entra ID (Production)",
+        "status": "accepted",
+        "path": "specs/adrs/adr-005-authentication.md",
+        "date": "2026-05-13",
+        "phase": "phase-A",
+        "drivenBy": "security-assessment",
+        "addresses": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-LOW-003"]
+      },
+      {
+        "number": 6,
+        "slug": "authorization",
+        "title": "Authorization Model — Role-Based with Admin/Reader for Rewrite, Policy-Based for Future",
+        "status": "accepted",
+        "path": "specs/adrs/adr-006-authorization.md",
+        "date": "2026-05-13",
+        "phase": "phase-A",
+        "drivenBy": "security-assessment",
+        "addresses": ["SEC-CRITICAL-001", "SEC-HIGH-001", "SEC-HIGH-002"]
+      },
+      {
+        "number": 7,
+        "slug": "secrets-management",
+        "title": "Secrets Management — Azure Key Vault + Managed Identity (Production), dotnet user-secrets (Dev)",
+        "status": "accepted",
+        "path": "specs/adrs/adr-007-secrets-management.md",
+        "date": "2026-05-13",
+        "phase": "phase-A",
+        "drivenBy": "security-assessment",
+        "addresses": ["SEC-MEDIUM-004", "secrets-scan"]
       }
     ]
   },
