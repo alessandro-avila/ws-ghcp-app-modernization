@@ -1,0 +1,150 @@
+feature: departments
+basePath: /Departments
+extractedFrom: src/ContosoUniversity/Controllers/DepartmentsController.cs
+routingModel: convention-based MVC route "{controller}/{action}/{id}"
+controller: DepartmentsController
+inheritance: BaseController
+auth:
+  required: false
+  notes: No [Authorize] attribute. No role check.
+
+endpoints:
+  - method: GET
+    path: /Departments/Index
+    summary: List all departments with the Administrator (Instructor) eager-loaded.
+    handler: DepartmentsController.Index()
+    sideEffects:
+      - SQL SELECT Department JOIN Person (Administrator) via .Include(d => d.Administrator).
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Departments/Index.cshtml" — model: IEnumerable<Department> }
+
+  - method: GET
+    path: /Departments/Details/{id}
+    summary: Show a single Department with Administrator eager-loaded.
+    handler: DepartmentsController.Details(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Departments/Details.cshtml" — model: Department }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: GET
+    path: /Departments/Create
+    summary: Render the create-department form. ViewBag.InstructorID = SelectList of Instructors (FullName).
+    handler: DepartmentsController.Create()
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Departments/Create.cshtml" — model: Department }
+
+  - method: POST
+    path: /Departments/Create
+    summary: Create a new Department.
+    handler: DepartmentsController.Create([Bind(Include="Name,Budget,StartDate,InstructorID")] Department department)
+    auth: { required: false, antiforgery: true }
+    request:
+      contentType: application/x-www-form-urlencoded
+      body:
+        type: object
+        boundFields:
+          Name:         { type: string,  required: true }
+          Budget:       { type: number,  format: decimal, required: true }
+          StartDate:    { type: string,  format: date, required: true }
+          InstructorID: { type: integer, required: false, notes: "Foreign key to Person (Instructor)." }
+        notes: |
+          DepartmentID is database-generated and is NOT bound (intentional). RowVersion is not bound on create.
+    sideEffects:
+      - SQL INSERT into Department.
+      - notificationService.SendNotification("Department", id, Name, EntityOperation.CREATE, "System")
+    responses:
+      - status: 302
+        location: /Departments/Index
+      - status: 200
+        body: { shape: Razor view "Views/Departments/Create.cshtml" with ModelState errors }
+
+  - method: GET
+    path: /Departments/Edit/{id}
+    summary: Render the edit-department form.
+    handler: DepartmentsController.Edit(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Departments/Edit.cshtml" — model: Department }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: POST
+    path: /Departments/Edit
+    summary: |
+      Update an existing Department with optimistic concurrency. RowVersion is required and used as the
+      concurrency token; on DbUpdateConcurrencyException the handler diffs the posted entity against the
+      current database row and surfaces per-property "current value" model errors, then re-renders the form
+      with the refreshed RowVersion.
+    handler: DepartmentsController.Edit([Bind(Include="DepartmentID,Name,Budget,StartDate,InstructorID,RowVersion")] Department department)
+    auth: { required: false, antiforgery: true }
+    request:
+      contentType: application/x-www-form-urlencoded
+      body:
+        type: object
+        boundFields:
+          DepartmentID: { type: integer, required: true }
+          Name:         { type: string,  required: true }
+          Budget:       { type: number,  format: decimal, required: true }
+          StartDate:    { type: string,  format: date, required: true }
+          InstructorID: { type: integer, required: false }
+          RowVersion:   { type: string,  format: byte (base64-encoded byte[]), required: true, notes: "Hidden field; concurrency token." }
+    sideEffects:
+      - SQL UPDATE Department WHERE DepartmentID = ... AND RowVersion = ... (issued by EF Core).
+      - notificationService.SendNotification("Department", DepartmentID, Name, EntityOperation.UPDATE, "System")
+    responses:
+      - status: 302
+        location: /Departments/Index
+        when: success
+      - status: 200
+        body: { shape: Razor view "Views/Departments/Edit.cshtml" with per-property concurrency errors and refreshed RowVersion }
+        when: DbUpdateConcurrencyException
+      - status: 200
+        body: { shape: Razor view "Views/Departments/Edit.cshtml" with generic ModelState error }
+        when: RetryLimitExceededException OR DataException
+
+  - method: GET
+    path: /Departments/Delete/{id}
+    summary: Render the delete-confirmation page.
+    handler: DepartmentsController.Delete(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Departments/Delete.cshtml" — model: Department }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: POST
+    path: /Departments/Delete/{id}
+    summary: Delete an existing Department.
+    handler: DepartmentsController.DeleteConfirmed(int id)  # mapped via [ActionName("Delete")]
+    auth: { required: false, antiforgery: true }
+    request:
+      pathParameters: [ { name: id, type: integer, required: true } ]
+      contentType: application/x-www-form-urlencoded
+      body: { type: object, boundFields: {} }
+    sideEffects:
+      - SQL DELETE from Department.
+      - notificationService.SendNotification("Department", id, Name, EntityOperation.DELETE, "System")
+    responses:
+      - status: 302
+        location: /Departments/Index
+
+middleware:
+  global:
+    - HandleErrorAttribute
+  controllerLevel: []

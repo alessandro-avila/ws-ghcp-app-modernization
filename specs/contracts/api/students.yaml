@@ -1,0 +1,212 @@
+feature: students
+basePath: /Students
+extractedFrom: src/ContosoUniversity/Controllers/StudentsController.cs
+routingModel: convention-based MVC route "{controller}/{action}/{id}"
+controller: StudentsController
+inheritance: BaseController
+auth:
+  required: false
+  notes: |
+    No [Authorize] attribute on controller or actions. Inline comments mention "Admins and Teachers can view"
+    but no role check is performed. Anonymous callers can hit every endpoint.
+
+endpoints:
+  - method: GET
+    path: /Students/Index
+    summary: List students with text search, sort, and pagination (10 per page).
+    handler: StudentsController.Index(string sortOrder, string currentFilter, string searchString, int? page)
+    request:
+      pathParameters: []
+      queryParameters:
+        - name: sortOrder
+          type: string
+          required: false
+          allowedValues: ["", "name_desc", "Date", "date_desc"]
+          notes: Empty/unknown → default ascending by LastName.
+        - name: currentFilter
+          type: string
+          required: false
+          notes: Carries the previous searchString across paging links.
+        - name: searchString
+          type: string
+          required: false
+          notes: Substring match against LastName OR FirstMidName via EF Core LINQ Contains().
+        - name: page
+          type: integer
+          required: false
+          default: 1
+      body: null
+    sideEffects:
+      - SQL SELECT against Person table (TPH discriminator = "Student") with WHERE/ORDER BY translated by EF Core.
+    responses:
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Students/Index.cshtml" — model: PaginatedList<Student>
+          schemaRef: shared-types.yaml#/PaginatedList
+
+  - method: GET
+    path: /Students/Details/{id}
+    summary: Show a single student with their enrollments and the courses for those enrollments eager-loaded.
+    handler: StudentsController.Details(int? id)
+    request:
+      pathParameters:
+        - name: id
+          type: integer (int?)
+          required: false
+          notes: |
+            If null → returns HttpStatusCodeResult(HttpStatusCode.BadRequest = 400).
+            If not found → returns HttpNotFoundResult (404). Actual lookup uses .Single() so a
+            missing record raises InvalidOperationException before HttpNotFound() is reached.
+      queryParameters: []
+      body: null
+    sideEffects:
+      - SQL SELECT Person + Enrollment + Course via .Include(s => s.Enrollments).ThenInclude(e => e.Course).
+    responses:
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Students/Details.cshtml" — model: Student
+          schemaRef: shared-types.yaml#/Student
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+      - status: 500
+        body: { shape: ASP.NET yellow-screen for InvalidOperationException when Single() finds no match }
+
+  - method: GET
+    path: /Students/Create
+    summary: Render the create-student form pre-populated with EnrollmentDate = today.
+    handler: StudentsController.Create()
+    request:
+      pathParameters: []
+      queryParameters: []
+      body: null
+    responses:
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Students/Create.cshtml" — model: Student (EnrollmentDate=DateTime.Today)
+
+  - method: POST
+    path: /Students/Create
+    summary: Create a new Student.
+    handler: StudentsController.Create([Bind(Include="LastName,FirstMidName,EnrollmentDate")] Student student)
+    auth:
+      required: false
+      antiforgery: true (ValidateAntiForgeryToken)
+    request:
+      contentType: application/x-www-form-urlencoded
+      body:
+        type: object
+        boundFields:
+          LastName:        { type: string, required: true, validation: "[Required, StringLength(50, MinimumLength = 1), Display(Name = \"Last Name\")]" }
+          FirstMidName:    { type: string, required: true, validation: "[Required, Column(\"FirstName\"), StringLength(50, MinimumLength = 1), Display(Name = \"First Name\")]" }
+          EnrollmentDate:  { type: string, format: date, required: true, validation: "[DataType(DataType.Date), DisplayFormat(DataFormatString = \"{0:yyyy-MM-dd}\", ApplyFormatInEditMode = true), Display(Name = \"Enrollment Date\")]" }
+        notes: |
+          Manual extra check: rejects EnrollmentDate == DateTime.MinValue. Other Student properties
+          (ID, Enrollments) are not bound.
+    sideEffects:
+      - SQL INSERT into Person (Discriminator="Student").
+      - notificationService.SendNotification("Student", id, fullName, EntityOperation.CREATE, "System")
+        → enqueues a Notification onto the in-memory queue.
+    responses:
+      - status: 302
+        location: /Students/Index (RedirectToAction("Index"))
+        when: ModelState.IsValid && SaveChanges succeeded
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Students/Create.cshtml" with ModelState errors — model: Student
+        when: ModelState invalid OR DataException caught (sets generic ModelState error and re-renders)
+
+  - method: GET
+    path: /Students/Edit/{id}
+    summary: Render the edit-student form for an existing student.
+    handler: StudentsController.Edit(int? id)
+    request:
+      pathParameters:
+        - name: id
+          type: integer (int?)
+          required: false
+          notes: Null → 400. Find returns null → HttpNotFound (404).
+      queryParameters: []
+      body: null
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Students/Edit.cshtml" — model: Student }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: POST
+    path: /Students/Edit
+    summary: Update an existing student.
+    handler: StudentsController.Edit([Bind(Include="ID,LastName,FirstMidName,EnrollmentDate")] Student student)
+    auth: { required: false, antiforgery: true }
+    request:
+      contentType: application/x-www-form-urlencoded
+      body:
+        type: object
+        boundFields:
+          ID: { type: integer, required: true }
+          LastName: { type: string, required: true }
+          FirstMidName: { type: string, required: true }
+          EnrollmentDate: { type: string, format: date, required: true }
+    sideEffects:
+      - db.Entry(student).State = EntityState.Modified; SaveChanges (UPDATE Person)
+      - notificationService.SendNotification("Student", id, fullName, EntityOperation.UPDATE, "System")
+    responses:
+      - status: 302
+        location: /Students/Index
+        when: success
+      - status: 200
+        body: { shape: Razor view "Views/Students/Edit.cshtml" with ModelState errors }
+        when: invalid model OR DataException caught
+
+  - method: GET
+    path: /Students/Delete/{id}
+    summary: Render the delete-confirmation page.
+    handler: StudentsController.Delete(int? id)
+    request:
+      pathParameters:
+        - name: id
+          type: integer (int?)
+          required: false
+      queryParameters: []
+      body: null
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Students/Delete.cshtml" — model: Student }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: POST
+    path: /Students/Delete/{id}
+    summary: Delete an existing student.
+    handler: StudentsController.DeleteConfirmed(int id)  # mapped via [ActionName("Delete")]
+    auth: { required: false, antiforgery: true }
+    request:
+      pathParameters:
+        - { name: id, type: integer, required: true }
+      contentType: application/x-www-form-urlencoded
+      body: { type: object, boundFields: {} }
+    sideEffects:
+      - SQL DELETE from Person (Discriminator="Student").
+      - notificationService.SendNotification("Student", id, fullName, EntityOperation.DELETE, "System")
+      - On exception → Trace.TraceError(...); TempData["ErrorMessage"] set; redirect to /Students/Index.
+    responses:
+      - status: 302
+        location: /Students/Index
+      - status: 302
+        location: /Students/Index
+        when: caught Exception (TempData carries error message)
+
+middleware:
+  global:
+    - HandleErrorAttribute
+  controllerLevel: []

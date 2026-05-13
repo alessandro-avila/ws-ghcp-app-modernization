@@ -1,0 +1,183 @@
+feature: instructors
+basePath: /Instructors
+extractedFrom: src/ContosoUniversity/Controllers/InstructorsController.cs
+routingModel: convention-based MVC route "{controller}/{action}/{id}"
+controller: InstructorsController
+inheritance: BaseController
+auth:
+  required: false
+  notes: |
+    No [Authorize] attribute. Inline comment on DeleteConfirmed says "Only admins can delete instructors"
+    but no role check is performed.
+
+endpoints:
+  - method: GET
+    path: /Instructors/Index
+    summary: |
+      Show the master/detail/sub-detail page for instructors. If id is provided, the selected instructor's
+      courses are listed. If courseID is also provided, that course's enrollments are listed too.
+      Uses InstructorIndexData view model.
+    handler: InstructorsController.Index(int? id, int? courseID)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+      queryParameters:
+        - { name: courseID, type: integer (int?), required: false, notes: "Selected course id for the third pane (Enrollments)." }
+    sideEffects:
+      - SQL SELECT Instructor + OfficeAssignment + CourseAssignments + Course + Department via nested .Include/.ThenInclude.
+      - SQL SELECT Enrollment + Student when courseID is provided (lazy-style explicit query).
+    responses:
+      - status: 200
+        body:
+          shape: Razor view "Views/Instructors/Index.cshtml" — model: SchoolViewModels.InstructorIndexData
+          schemaRef: shared-types.yaml#/InstructorIndexData
+
+  - method: GET
+    path: /Instructors/Details/{id}
+    summary: Show a single instructor.
+    handler: InstructorsController.Details(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Instructors/Details.cshtml" — model: Instructor }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: GET
+    path: /Instructors/Create
+    summary: Render the create-instructor form, with the available-courses checkbox grid populated.
+    handler: InstructorsController.Create()
+    sideEffects:
+      - SQL SELECT Course (to populate ViewBag.Courses via PopulateAssignedCourseData).
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Instructors/Create.cshtml" — model: Instructor (with empty CourseAssignments and OfficeAssignment) }
+
+  - method: POST
+    path: /Instructors/Create
+    summary: Create a new Instructor with optional OfficeAssignment and a many-to-many list of CourseAssignments.
+    handler: |
+      InstructorsController.Create([Bind(Include="LastName,FirstMidName,HireDate,OfficeAssignment")] Instructor instructor,
+                                    string[] selectedCourses)
+    auth: { required: false, antiforgery: true }
+    request:
+      contentType: application/x-www-form-urlencoded
+      body:
+        type: object
+        boundFields:
+          LastName:     { type: string, required: true }
+          FirstMidName: { type: string, required: true }
+          HireDate:     { type: string, format: date, required: true }
+          OfficeAssignment:
+            type: object (nested OfficeAssignment via prefix-binding "OfficeAssignment.Location")
+            properties:
+              Location: { type: string, required: false }
+        repeatedFields:
+          selectedCourses:
+            type: array<string (CourseID as string)>
+            required: false
+            notes: From a checkbox group; each value is the integer CourseID rendered as string.
+    sideEffects:
+      - SQL INSERT Person (Discriminator="Instructor"); INSERT OfficeAssignment if Location provided;
+        INSERT CourseAssignment rows for each selected course.
+      - notificationService.SendNotification("Instructor", id, fullName, EntityOperation.CREATE, "System")
+    responses:
+      - status: 302
+        location: /Instructors/Index
+        when: ModelState valid && SaveChanges succeeded
+      - status: 200
+        body: { shape: Razor view "Views/Instructors/Create.cshtml" with ModelState errors }
+        when: validation failed
+
+  - method: GET
+    path: /Instructors/Edit/{id}
+    summary: Render the edit-instructor form, with the available-courses checkbox grid populated and current selections marked.
+    handler: InstructorsController.Edit(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    sideEffects:
+      - SQL SELECT Instructor + OfficeAssignment + CourseAssignments + Course; SQL SELECT Course list.
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Instructors/Edit.cshtml" — model: Instructor }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult (when .Single() yields null — actually .Single() throws InvalidOperationException) }
+
+  - method: POST
+    path: /Instructors/Edit/{id}
+    summary: Update an existing Instructor, including syncing the many-to-many CourseAssignments.
+    handler: InstructorsController.Edit(int? id, string[] selectedCourses)
+    auth: { required: false, antiforgery: true }
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+      contentType: application/x-www-form-urlencoded
+      body:
+        type: object
+        boundFields:
+          # Updated via TryUpdateModel(prefix="", new[]{ "LastName", "FirstMidName", "HireDate", "OfficeAssignment" })
+          LastName:     { type: string, required: true }
+          FirstMidName: { type: string, required: true }
+          HireDate:     { type: string, format: date, required: true }
+          OfficeAssignment.Location:
+            type: string
+            required: false
+            notes: |
+              If null/whitespace after binding, instructorToUpdate.OfficeAssignment is set to null
+              (this nullifies an existing OfficeAssignment on save).
+        repeatedFields:
+          selectedCourses:
+            type: array<string>
+            required: false
+            notes: When null, all CourseAssignments are cleared. Otherwise UpdateInstructorCourses synchronizes the set.
+    sideEffects:
+      - SQL UPDATE Person; INSERT/DELETE OfficeAssignment as needed; INSERT/DELETE CourseAssignment rows.
+      - notificationService.SendNotification("Instructor", id, EntityOperation.UPDATE, "System")
+    responses:
+      - status: 302
+        location: /Instructors/Index
+        when: success
+      - status: 200
+        body: { shape: Razor view "Views/Instructors/Edit.cshtml" with ModelState errors }
+        when: TryUpdateModel failed OR exception caught
+
+  - method: GET
+    path: /Instructors/Delete/{id}
+    summary: Render the delete-confirmation page.
+    handler: InstructorsController.Delete(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Instructors/Delete.cshtml" — model: Instructor }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: POST
+    path: /Instructors/Delete/{id}
+    summary: |
+      Delete an Instructor; also nullifies Department.InstructorID on any Department referencing them
+      (so the department survives but loses its administrator), then removes the instructor.
+    handler: InstructorsController.DeleteConfirmed(int id)  # mapped via [ActionName("Delete")]
+    auth: { required: false, antiforgery: true }
+    request:
+      pathParameters: [ { name: id, type: integer, required: true } ]
+      contentType: application/x-www-form-urlencoded
+      body: { type: object, boundFields: {} }
+    sideEffects:
+      - SQL UPDATE Department SET InstructorID = NULL where InstructorID = id (one occurrence allowed by code).
+      - SQL DELETE from Person (Discriminator="Instructor") cascades to OfficeAssignment + CourseAssignment.
+      - notificationService.SendNotification("Instructor", id, EntityOperation.DELETE, "System")
+    responses:
+      - status: 302
+        location: /Instructors/Index
+
+middleware:
+  global:
+    - HandleErrorAttribute
+  controllerLevel: []

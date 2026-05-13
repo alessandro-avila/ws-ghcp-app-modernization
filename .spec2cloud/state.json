@@ -1,0 +1,160 @@
+{
+  "version": "1.0",
+  "mode": "brownfield",
+  "currentPhase": "B2",
+  "lastUpdated": "2026-05-13T01:35:00Z",
+  "project": {
+    "name": "ContosoUniversity",
+    "rootPath": "src/ContosoUniversity",
+    "description": "ASP.NET MVC (.NET Framework) university management application — brownfield modernization candidate"
+  },
+  "humanGates": {
+    "B0_onboarding": "approved",
+    "B1_extraction_review": "approved",
+    "B2a_prd_approval": "approved",
+    "B2b_frd_approval": "pending",
+    "B2c_refinement_approval": null,
+    "testability_gate": null,
+    "path_selection": null
+  },
+  "brownfield": {
+    "targetApp": "ContosoUniversity",
+    "targetPath": "src/ContosoUniversity",
+    "modernizationGoalsHint": ["rewrite", "security"],
+    "extraction": {
+      "codebaseScanner": "specs/docs/technology/stack.md",
+      "dependencyInventory": "specs/docs/technology/dependencies.md",
+      "architectureMapper": {
+        "overview": "specs/docs/architecture/overview.md",
+        "components": "specs/docs/architecture/components.md"
+      },
+      "apiExtractor": {
+        "overview": "specs/contracts/api/_routes-overview.md",
+        "files": [
+          "specs/contracts/api/home.yaml",
+          "specs/contracts/api/students.yaml",
+          "specs/contracts/api/courses.yaml",
+          "specs/contracts/api/instructors.yaml",
+          "specs/contracts/api/departments.yaml",
+          "specs/contracts/api/notifications.yaml",
+          "specs/contracts/api/message-queue-test.yaml",
+          "specs/contracts/api/shared-types.yaml"
+        ],
+        "endpointCount": 45,
+        "controllerCount": 7
+      },
+      "dataModelExtractor": {
+        "file": "specs/docs/architecture/data-models.md",
+        "entityCount": 9,
+        "migrationCount": 0,
+        "schemaGeneration": "EnsureCreated (no migrations)"
+      },
+      "testDiscovery": {
+        "file": "specs/docs/testing/coverage.md",
+        "frameworks": [],
+        "testFiles": 0,
+        "testCases": 0,
+        "coverageReports": 0,
+        "manualVerificationDocs": 5
+      }
+    },
+    "prdGenerated": true,
+    "prdFile": "specs/prd.md",
+    "frdCount": 8,
+    "frds": [
+      {
+        "feature_id": "F-001",
+        "name": "Student Management",
+        "path": "specs/frd-student-management.md",
+        "priority": "P0",
+        "user_stories_count": 6,
+        "requirements_count": 8,
+        "test_coverage": "0%",
+        "known_limitations_count": 8
+      },
+      {
+        "feature_id": "F-002",
+        "name": "Course Management with Teaching Materials",
+        "path": "specs/frd-course-management.md",
+        "priority": "P0",
+        "user_stories_count": 6,
+        "requirements_count": 8,
+        "test_coverage": "0%",
+        "known_limitations_count": 9
+      },
+      {
+        "feature_id": "F-003",
+        "name": "Instructor Management",
+        "path": "specs/frd-instructor-management.md",
+        "priority": "P0",
+        "user_stories_count": 6,
+        "requirements_count": 8,
+        "test_coverage": "0%",
+        "known_limitations_count": 8
+      },
+      {
+        "feature_id": "F-004",
+        "name": "Department Management",
+        "path": "specs/frd-department-management.md",
+        "priority": "P0",
+        "user_stories_count": 6,
+        "requirements_count": 8,
+        "test_coverage": "0%",
+        "known_limitations_count": 7
+      },
+      {
+        "feature_id": "F-005",
+        "name": "Enrollment Statistics",
+        "path": "specs/frd-enrollment-statistics.md",
+        "priority": "P2",
+        "user_stories_count": 1,
+        "requirements_count": 1,
+        "test_coverage": "0%",
+        "known_limitations_count": 3
+      },
+      {
+        "feature_id": "F-006",
+        "name": "Real-Time Notification System",
+        "path": "specs/frd-notification-system.md",
+        "priority": "P1",
+        "user_stories_count": 3,
+        "requirements_count": 4,
+        "test_coverage": "0%",
+        "known_limitations_count": 8
+      },
+      {
+        "feature_id": "F-007",
+        "name": "Queue Diagnostic Tools",
+        "path": "specs/frd-queue-diagnostics.md",
+        "priority": "P3",
+        "user_stories_count": 5,
+        "requirements_count": 5,
+        "test_coverage": "0%",
+        "known_limitations_count": 6
+      },
+      {
+        "feature_id": "F-008",
+        "name": "Static Pages",
+        "path": "specs/frd-static-pages.md",
+        "priority": "P3",
+        "user_stories_count": 4,
+        "requirements_count": 4,
+        "test_coverage": "0%",
+        "known_limitations_count": 3
+      }
+    ],
+    "testability": null,
+    "track": null,
+    "testabilityChecklist": null,
+    "featureTracks": null,
+    "greenBaseline": null,
+    "behavioralDocs": null,
+    "selectedPaths": null
+  },
+  "adrs": {
+    "nextNumber": 1,
+    "records": []
+  },
+  "incrementPlan": null,
+  "currentIncrement": null
+}

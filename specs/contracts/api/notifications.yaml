@@ -1,0 +1,88 @@
+feature: notifications
+basePath: /Notifications
+extractedFrom: src/ContosoUniversity/Controllers/NotificationsController.cs
+routingModel: convention-based MVC route "{controller}/{action}/{id}"
+controller: NotificationsController
+inheritance: BaseController
+auth:
+  required: false
+  notes: No [Authorize] attribute. JSON endpoints reachable anonymously.
+
+endpoints:
+  - method: GET
+    path: /Notifications/GetNotifications
+    summary: |
+      Drain up to 10 notifications from the in-process notification queue and return them as JSON.
+      The action loops calling NotificationService.ReceiveNotification() (which polls the in-memory
+      queue with a 1-second timeout per call) and accumulates non-null results until it gets null OR
+      the count reaches 10.
+    handler: NotificationsController.GetNotifications()
+    attributes: [ HttpGet ]
+    request: { pathParameters: [], queryParameters: [], body: null }
+    sideEffects:
+      - Drains messages from the in-process MessageQueue (destructive read — messages are removed).
+    responses:
+      - status: 200
+        contentType: application/json; charset=utf-8
+        body:
+          type: object
+          properties:
+            success:       { type: boolean, example: true }
+            notifications:
+              type: array
+              items: { $ref: "shared-types.yaml#/Notification" }
+            count:         { type: integer, example: 0 }
+        when: queue read succeeded (count may be 0)
+      - status: 200
+        contentType: application/json; charset=utf-8
+        body:
+          type: object
+          properties:
+            success: { type: boolean, example: false }
+            message: { type: string,  example: "Error retrieving notifications" }
+        when: any exception thrown during the drain loop
+
+  - method: POST
+    path: /Notifications/MarkAsRead
+    summary: Stub that calls NotificationService.MarkAsRead(id) — which is currently a no-op.
+    handler: NotificationsController.MarkAsRead(int id)
+    attributes: [ HttpPost ]
+    auth:
+      required: false
+      antiforgery: false (no [ValidateAntiForgeryToken])
+    request:
+      contentType: application/x-www-form-urlencoded
+      body:
+        type: object
+        properties:
+          id: { type: integer, required: true }
+    responses:
+      - status: 200
+        contentType: application/json; charset=utf-8
+        body:
+          type: object
+          properties:
+            success: { type: boolean, example: true }
+        when: success
+      - status: 200
+        contentType: application/json; charset=utf-8
+        body:
+          type: object
+          properties:
+            success: { type: boolean, example: false }
+            message: { type: string,  example: "Error updating notification" }
+        when: exception
+
+  - method: GET
+    path: /Notifications/Index
+    summary: Render the admin notification dashboard view.
+    handler: NotificationsController.Index()
+    request: { pathParameters: [], queryParameters: [], body: null }
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Notifications/Index.cshtml" — model: none }
+
+middleware:
+  global:
+    - HandleErrorAttribute
+  controllerLevel: []

@@ -1,0 +1,98 @@
+feature: home
+basePath: /
+extractedFrom: src/ContosoUniversity/Controllers/HomeController.cs
+routingModel: convention-based MVC route "{controller}/{action}/{id}"
+controller: HomeController
+inheritance: BaseController
+auth:
+  required: false
+  notes: |
+    No [Authorize] attribute. No role check in action bodies.
+    Web.config <system.web> sets authentication mode="None"; IIS Express enables Windows auth at the
+    server layer but the application does not consume the principal.
+
+endpoints:
+  - method: GET
+    path: /Home/Index
+    aliases:
+      - / (default route)
+      - /Home
+    summary: Render the application landing page.
+    handler: HomeController.Index()
+    request:
+      pathParameters: []
+      queryParameters: []
+      body: null
+    responses:
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Home/Index.cshtml" — model: none
+
+  - method: GET
+    path: /Home/About
+    summary: |
+      Show the count of students grouped by EnrollmentDate. The handler builds a list of
+      EnrollmentDateGroup view models (one row per distinct enrollment date with a count of students)
+      and passes it to the view.
+    handler: HomeController.About()
+    request:
+      pathParameters: []
+      queryParameters: []
+      body: null
+    sideEffects:
+      - SQL SELECT against Person table (TPH discriminator = "Student") via db.Students
+    responses:
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Home/About.cshtml" — model: IEnumerable<SchoolViewModels.EnrollmentDateGroup>
+          schemaRef: shared-types.yaml#/EnrollmentDateGroup
+
+  - method: GET
+    path: /Home/Contact
+    summary: Render a static contact page.
+    handler: HomeController.Contact()
+    request:
+      pathParameters: []
+      queryParameters: []
+      body: null
+    responses:
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Home/Contact.cshtml" — model: none
+
+  - method: GET
+    path: /Home/Error
+    summary: Render an error page (intended target of the global HandleErrorAttribute).
+    handler: HomeController.Error()
+    request:
+      pathParameters: []
+      queryParameters: []
+      body: null
+    responses:
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Home/Error.cshtml" — model: none
+
+  - method: GET
+    path: /Home/Unauthorized
+    summary: Render an unauthorized-access page. Not currently linked from any other code path.
+    handler: HomeController.Unauthorized()
+    request:
+      pathParameters: []
+      queryParameters: []
+      body: null
+    responses:
+      - status: 200
+        contentType: text/html; charset=utf-8
+        body:
+          shape: Razor view "Views/Home/Unauthorized.cshtml" — model: none
+
+middleware:
+  global:
+    - HandleErrorAttribute (registered in App_Start/FilterConfig.cs)
+  routeLevel: []
+  controllerLevel: []

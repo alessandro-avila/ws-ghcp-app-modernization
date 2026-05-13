@@ -1,0 +1,170 @@
+feature: courses
+basePath: /Courses
+extractedFrom: src/ContosoUniversity/Controllers/CoursesController.cs
+routingModel: convention-based MVC route "{controller}/{action}/{id}"
+controller: CoursesController
+inheritance: BaseController
+auth:
+  required: false
+  notes: |
+    No [Authorize] attribute. No role check. All endpoints reachable anonymously.
+
+endpoints:
+  - method: GET
+    path: /Courses/Index
+    summary: List all courses with their Department eager-loaded.
+    handler: CoursesController.Index()
+    request: { pathParameters: [], queryParameters: [], body: null }
+    sideEffects:
+      - SQL SELECT Course JOIN Department via .Include(c => c.Department).
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Courses/Index.cshtml" — model: IEnumerable<Course> }
+
+  - method: GET
+    path: /Courses/Details/{id}
+    summary: Show a single course with Department eager-loaded.
+    handler: CoursesController.Details(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Courses/Details.cshtml" — model: Course }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: GET
+    path: /Courses/Create
+    summary: Render the create-course form. ViewBag.DepartmentID = SelectList of all Departments.
+    handler: CoursesController.Create()
+    request: { pathParameters: [], queryParameters: [], body: null }
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Courses/Create.cshtml" — model: Course }
+
+  - method: POST
+    path: /Courses/Create
+    summary: Create a new Course (with optional teaching-material image upload).
+    handler: |
+      CoursesController.Create([Bind(Include="CourseID,Title,Credits,DepartmentID,TeachingMaterialImagePath")] Course course,
+                                HttpPostedFileBase teachingMaterialImage)
+    auth: { required: false, antiforgery: true }
+    request:
+      contentType: multipart/form-data
+      body:
+        type: object
+        boundFields:
+          CourseID:   { type: integer, required: true, validation: "[DatabaseGenerated(DatabaseGeneratedOption.None)]" }
+          Title:      { type: string,  required: true }
+          Credits:    { type: integer, required: true }
+          DepartmentID: { type: integer, required: true }
+          TeachingMaterialImagePath: { type: string, required: false }
+        files:
+          teachingMaterialImage:
+            type: HttpPostedFileBase
+            required: false
+            allowedExtensions: [.jpg, .jpeg, .png, .gif, .bmp]
+            maxSizeBytes: 5242880   # 5 MB
+            errorBehavior: |
+              Invalid extension → ModelState.AddModelError("teachingMaterialImage",
+                "Only image files (JPG, PNG, GIF, BMP) are allowed.") and re-render Create view.
+              Oversize → ModelState.AddModelError("teachingMaterialImage",
+                "File size cannot exceed 5MB.") and re-render Create view.
+    sideEffects:
+      - File system: writes the image to ~/Uploads/TeachingMaterials/course_{CourseID}_{Guid}{ext}
+        (creates the directory if missing); sets course.TeachingMaterialImagePath = "~/Uploads/TeachingMaterials/{file}".
+      - SQL INSERT into Course.
+      - notificationService.SendNotification("Course", CourseID, Title, EntityOperation.CREATE, "System")
+    responses:
+      - status: 302
+        location: /Courses/Index
+        when: success
+      - status: 200
+        body: { shape: Razor view "Views/Courses/Create.cshtml" with ModelState errors }
+        when: validation failed OR DbUpdateException caught (sets ModelState error and re-renders)
+
+  - method: GET
+    path: /Courses/Edit/{id}
+    summary: Render the edit-course form. ViewBag.DepartmentID = SelectList(Departments, selected = course.DepartmentID).
+    handler: CoursesController.Edit(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Courses/Edit.cshtml" — model: Course }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: POST
+    path: /Courses/Edit
+    summary: Update an existing Course (with optional new image upload that replaces the existing one).
+    handler: |
+      CoursesController.Edit([Bind(Include="CourseID,Title,Credits,DepartmentID,TeachingMaterialImagePath")] Course course,
+                              HttpPostedFileBase teachingMaterialImage)
+    auth: { required: false, antiforgery: true }
+    request:
+      contentType: multipart/form-data
+      body:
+        type: object
+        boundFields:
+          CourseID:   { type: integer, required: true }
+          Title:      { type: string,  required: true }
+          Credits:    { type: integer, required: true }
+          DepartmentID: { type: integer, required: true }
+          TeachingMaterialImagePath: { type: string, required: false }
+        files:
+          teachingMaterialImage:
+            type: HttpPostedFileBase
+            required: false
+            allowedExtensions: [.jpg, .jpeg, .png, .gif, .bmp]
+            maxSizeBytes: 5242880
+    sideEffects:
+      - File system: deletes the previous image (if any) at the prior course.TeachingMaterialImagePath
+        (resolved via Server.MapPath); writes the new image to ~/Uploads/TeachingMaterials/.
+      - db.Entry(course).State = EntityState.Modified; SaveChanges (UPDATE Course).
+      - notificationService.SendNotification("Course", CourseID, Title, EntityOperation.UPDATE, "System")
+    responses:
+      - status: 302
+        location: /Courses/Index
+      - status: 200
+        body: { shape: Razor view "Views/Courses/Edit.cshtml" with ModelState errors }
+
+  - method: GET
+    path: /Courses/Delete/{id}
+    summary: Render the delete-confirmation page.
+    handler: CoursesController.Delete(int? id)
+    request:
+      pathParameters: [ { name: id, type: integer (int?), required: false } ]
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/Courses/Delete.cshtml" — model: Course }
+      - status: 400
+        body: { shape: HttpStatusCodeResult }
+      - status: 404
+        body: { shape: HttpNotFoundResult }
+
+  - method: POST
+    path: /Courses/Delete/{id}
+    summary: Delete a Course and its on-disk teaching-material image (if any).
+    handler: CoursesController.DeleteConfirmed(int id)  # mapped via [ActionName("Delete")]
+    auth: { required: false, antiforgery: true }
+    request:
+      pathParameters: [ { name: id, type: integer, required: true } ]
+      contentType: application/x-www-form-urlencoded
+      body: { type: object, boundFields: {} }
+    sideEffects:
+      - File system: deletes ~/Uploads/TeachingMaterials/{file} if course.TeachingMaterialImagePath is set.
+      - SQL DELETE from Course (cascades governed by EF Core configuration).
+      - notificationService.SendNotification("Course", id, Title, EntityOperation.DELETE, "System")
+    responses:
+      - status: 302
+        location: /Courses/Index
+
+middleware:
+  global:
+    - HandleErrorAttribute
+  controllerLevel: []

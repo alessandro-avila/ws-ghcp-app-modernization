@@ -1,0 +1,94 @@
+feature: message-queue-test
+basePath: /MessageQueueTest
+extractedFrom: src/ContosoUniversity/Controllers/MessageQueueTestController.cs
+routingModel: convention-based MVC route "{controller}/{action}/{id}"
+controller: MessageQueueTestController
+inheritance: Controller (NOT BaseController)
+auth:
+  required: false
+  notes: |
+    Anonymous. None of the POST endpoints carry [ValidateAntiForgeryToken]. SendTestNotification
+    is the only place in the application that reads User.Identity.Name (and falls back to "TestUser").
+
+endpoints:
+  - method: GET
+    path: /MessageQueueTest/Index
+    summary: Render the in-app diagnostics dashboard for the message-queue subsystem.
+    handler: MessageQueueTestController.Index()
+    request: { pathParameters: [], queryParameters: [], body: null }
+    responses:
+      - status: 200
+        body: { shape: Razor view "Views/MessageQueueTest/Index.cshtml" — model: none, ViewBag.Message = "Message Queue Test Page" }
+
+  - method: POST
+    path: /MessageQueueTest/SendTestNotification
+    summary: |
+      Build a "Test"-typed Notification with a fresh GUID EntityId and send it via NotificationService
+      onto the default notification queue. The CreatedBy field is User.Identity.Name (or "TestUser" if anonymous).
+    handler: MessageQueueTestController.SendTestNotification()
+    attributes: [ HttpPost ]
+    auth: { required: false, antiforgery: false }
+    request: { pathParameters: [], queryParameters: [], body: { type: object, boundFields: {} } }
+    sideEffects:
+      - Enqueues a Notification onto the in-process queue at the configured NotificationQueuePath.
+    responses:
+      - status: 200
+        body:
+          shape: Razor view "Views/MessageQueueTest/Index.cshtml" with ViewBag.Message + ViewBag.MessageType ("success" | "error")
+
+  - method: POST
+    path: /MessageQueueTest/ReceiveNotifications
+    summary: |
+      Drain up to 10 notifications from the default notification queue (destructive read) and surface them
+      via ViewBag.Notifications.
+    handler: MessageQueueTestController.ReceiveNotifications()
+    attributes: [ HttpPost ]
+    auth: { required: false, antiforgery: false }
+    request: { pathParameters: [], queryParameters: [], body: { type: object, boundFields: {} } }
+    sideEffects:
+      - Drains the in-process notification queue (same queue used by every CRUD controller's notifications).
+    responses:
+      - status: 200
+        body:
+          shape: |
+            Razor view "Views/MessageQueueTest/Index.cshtml" with ViewBag.Notifications: List<Notification>,
+            ViewBag.Message = "Received N notifications", ViewBag.MessageType = "info" or "error".
+
+  - method: POST
+    path: /MessageQueueTest/TestBasicQueue
+    summary: |
+      Smoke test the queue API: create an ad-hoc queue named "TestBasicQueue", send a string and an
+      anonymous JSON object, receive both, then delete the queue.
+    handler: MessageQueueTestController.TestBasicQueue()
+    attributes: [ HttpPost ]
+    auth: { required: false, antiforgery: false }
+    request: { pathParameters: [], queryParameters: [], body: { type: object, boundFields: {} } }
+    sideEffects:
+      - Creates a transient in-process queue, sends 2 messages, receives 2 messages, deletes the queue.
+    responses:
+      - status: 200
+        body:
+          shape: |
+            Razor view "Views/MessageQueueTest/Index.cshtml" with ViewBag.Message describing the round-trip
+            and ViewBag.MessageType ("success" | "error").
+
+  - method: POST
+    path: /MessageQueueTest/GetQueueStatus
+    summary: Enumerate every in-process queue currently registered with MessageQueueManager and report each queue's depth.
+    handler: MessageQueueTestController.GetQueueStatus()
+    attributes: [ HttpPost ]
+    auth: { required: false, antiforgery: false }
+    request: { pathParameters: [], queryParameters: [], body: { type: object, boundFields: {} } }
+    sideEffects:
+      - Reads MessageQueueManager.GetAllQueueNames() and IMessageQueue.Count for each — non-destructive.
+    responses:
+      - status: 200
+        body:
+          shape: |
+            Razor view "Views/MessageQueueTest/Index.cshtml" with ViewBag.Message = a multi-line text block listing
+            "- {queueName}: {count} messages" for each queue (or "No queues found"), ViewBag.MessageType = "info" or "error".
+
+middleware:
+  global:
+    - HandleErrorAttribute
+  controllerLevel: []

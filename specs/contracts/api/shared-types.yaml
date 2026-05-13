@@ -1,0 +1,128 @@
+# Shared types referenced from the per-feature contract files.
+# Schemas extracted verbatim from src/ContosoUniversity/Models/*.cs.
+
+sharedTypes:
+
+  Student:
+    description: TPH-mapped subclass of Person; rows live in the Person table with Discriminator="Student".
+    properties:
+      ID:             { type: integer, required: true, notes: "Inherited from Person; primary key, identity." }
+      LastName:       { type: string,  required: true, validation: "[Required, StringLength(50, MinimumLength=1), Display(\"Last Name\")]" }
+      FirstMidName:   { type: string,  required: true, validation: "[Required, Column(\"FirstName\"), StringLength(50, MinimumLength=1), Display(\"First Name\")]" }
+      EnrollmentDate: { type: string,  format: date, required: true, validation: "[DataType(Date), DisplayFormat(\"{0:yyyy-MM-dd}\"), Display(\"Enrollment Date\")]" }
+      Enrollments:    { type: array<Enrollment>, required: false, notes: "Navigation collection." }
+      FullName:       { type: string,  required: false, notes: "[Display(\"Full Name\")] computed get-only on Person => LastName + \", \" + FirstMidName" }
+
+  Instructor:
+    description: TPH-mapped subclass of Person; rows live in the Person table with Discriminator="Instructor".
+    properties:
+      ID:               { type: integer, required: true }
+      LastName:         { type: string,  required: true }
+      FirstMidName:     { type: string,  required: true }
+      HireDate:         { type: string,  format: date, required: true }
+      OfficeAssignment: { type: OfficeAssignment, required: false }
+      CourseAssignments: { type: array<CourseAssignment>, required: false }
+      FullName:         { type: string,  required: false }
+
+  Course:
+    description: Entity mapped to table "Course".
+    properties:
+      CourseID:                  { type: integer, required: true, validation: "[DatabaseGenerated(DatabaseGeneratedOption.None)]" }
+      Title:                     { type: string,  required: true }
+      Credits:                   { type: integer, required: true }
+      DepartmentID:              { type: integer, required: true }
+      TeachingMaterialImagePath: { type: string,  required: false, notes: "Web-rooted path under ~/Uploads/TeachingMaterials/." }
+      Department:                { type: Department, required: false, notes: "Navigation property." }
+      Enrollments:               { type: array<Enrollment>, required: false }
+      CourseAssignments:         { type: array<CourseAssignment>, required: false }
+
+  Department:
+    description: Entity mapped to table "Department". Has an optimistic-concurrency RowVersion column.
+    properties:
+      DepartmentID:  { type: integer, required: true }
+      Name:          { type: string,  required: true }
+      Budget:        { type: number, format: "decimal(18,2)", required: true }
+      StartDate:     { type: string, format: date, required: true }
+      InstructorID:  { type: integer, required: false, notes: "FK to Person (Instructor); nullable so deletion of an instructor sets NULL." }
+      RowVersion:    { type: string, format: "byte (base64 of byte[])", required: true, notes: "[Timestamp] concurrency token." }
+      Administrator: { type: Instructor, required: false, notes: "Navigation property." }
+      Courses:       { type: array<Course>, required: false }
+
+  Enrollment:
+    description: Entity mapped to table "Enrollment". Join entity between Student and Course with a Grade.
+    properties:
+      EnrollmentID: { type: integer, required: true }
+      CourseID:     { type: integer, required: true }
+      StudentID:    { type: integer, required: true }
+      Grade:        { type: enum<Grade>, required: false, notes: "Letter grade enum: A, B, C, D, F." }
+      Course:       { type: Course, required: false }
+      Student:      { type: Student, required: false }
+
+  OfficeAssignment:
+    description: 1-to-1 with Instructor (keyed on InstructorID). Mapped to table "OfficeAssignment".
+    properties:
+      InstructorID: { type: integer, required: true, notes: "PK and FK to Person (Instructor)." }
+      Location:     { type: string, required: true, validation: "[StringLength(50)]" }
+      Instructor:   { type: Instructor, required: false }
+
+  CourseAssignment:
+    description: Many-to-many join between Course and Instructor. Composite key (CourseID, InstructorID). Mapped to table "CourseAssignment".
+    properties:
+      CourseID:     { type: integer, required: true }
+      InstructorID: { type: integer, required: true }
+      Course:       { type: Course, required: false }
+      Instructor:   { type: Instructor, required: false }
+
+  Notification:
+    description: Persisted notification entity (table "Notification"). Also serialised to JSON when flowing through the in-process queue.
+    properties:
+      Id:         { type: integer, required: true }
+      EntityType: { type: string,  required: true, validation: "[StringLength(100)]" }
+      EntityId:   { type: string,  required: true, validation: "[StringLength(50)]" }
+      Operation:  { type: string,  required: true, validation: "[StringLength(20)]", allowedValues: ["CREATE", "UPDATE", "DELETE"] }
+      Message:    { type: string,  required: true, validation: "[StringLength(256)]" }
+      CreatedAt:  { type: string,  format: date-time, required: true, validation: "[Column(TypeName=\"datetime2\")]" }
+      CreatedBy:  { type: string,  required: false, validation: "[StringLength(100)]" }
+      IsRead:     { type: boolean, required: false }
+      ReadAt:     { type: string,  format: date-time, required: false, validation: "[Column(TypeName=\"datetime2\")]" }
+
+  EntityOperation:
+    description: Enum used by NotificationService.SendNotification.
+    type: enum
+    values: [CREATE, UPDATE, DELETE]
+
+  PaginatedList:
+    description: Generic helper used by Razor views to render paged lists. Defined in src/ContosoUniversity/PaginatedList.cs.
+    typeParameter: T
+    properties:
+      Items:           { type: array<T>, required: true, notes: "PaginatedList<T> inherits List<T>; the items are the list contents." }
+      PageIndex:       { type: integer, required: true }
+      TotalPages:      { type: integer, required: true }
+      HasPreviousPage: { type: boolean, required: true }
+      HasNextPage:     { type: boolean, required: true }
+
+  EnrollmentDateGroup:
+    description: View model from Models/SchoolViewModels/EnrollmentDateGroup.cs. Populated by HomeController.About.
+    properties:
+      EnrollmentDate:  { type: string, format: date, required: true }
+      StudentCount:    { type: integer, required: true }
+
+  AssignedCourseData:
+    description: View model from Models/SchoolViewModels/AssignedCourseData.cs. Used by Instructor Create/Edit views.
+    properties:
+      CourseID: { type: integer, required: true }
+      Title:    { type: string,  required: true }
+      Assigned: { type: boolean, required: true }
+
+  InstructorIndexData:
+    description: View model from Models/SchoolViewModels/InstructorIndexData.cs. Used by Instructors/Index.
+    properties:
+      Instructors: { type: array<Instructor>, required: true }
+      Courses:     { type: array<Course>,     required: true }
+      Enrollments: { type: array<Enrollment>, required: true }
+
+  ErrorViewModel:
+    description: View model used by the Error view (Models/ErrorViewModel.cs).
+    properties:
+      RequestId:      { type: string,  required: false }
+      ShowRequestId:  { type: boolean, required: false }
