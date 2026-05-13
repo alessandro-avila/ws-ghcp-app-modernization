@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "mode": "brownfield",
-  "currentPhase": "path-selection",
-  "lastUpdated": "2026-05-13T02:15:00Z",
+  "currentPhase": "phase-A",
+  "lastUpdated": "2026-05-13T02:25:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -19,7 +19,8 @@
     "testability_gate": "approved",
     "testability_gate_adr": "ADR-001",
     "testability_gate_outcome": "Track A (full green baseline) for all 8 FRDs",
-    "path_selection": null
+    "path_selection": "approved",
+    "path_selection_outcome": "selected: rewrite + security (option a)"
   },
   "brownfield": {
     "targetApp": "ContosoUniversity",
@@ -164,7 +165,7 @@
     "featureTracks": null,
     "greenBaseline": null,
     "behavioralDocs": null,
-    "selectedPaths": null
+    "selectedPaths": ["rewrite", "security"]
   },
   "adrs": {
     "nextNumber": 2,

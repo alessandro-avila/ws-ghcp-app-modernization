@@ -26,3 +26,5 @@
 [2026-05-13T02:10:02Z] phase=testability-gate step=human-gate action=present-for-signoff result=pending message="ADR-001 + 6-item checklist + Track A recommendation presented to user"
 [2026-05-13T02:15:00Z] phase=testability-gate step=human-gate action=human-approval result=approved message="user=alavil approved option (a) -- ADR-001 accepted, Track A (full green baseline) for all 8 FRDs"
 [2026-05-13T02:15:01Z] phase=testability-gate step=phase-transition action=advance result=done message="testability-gate complete -> path-selection (user pre-hinted rewrite + security; awaiting confirmation)"
+[2026-05-13T02:25:00Z] phase=path-selection step=human-gate action=human-approval result=approved message="user=alavil selected rewrite + security (option a)"
+[2026-05-13T02:25:01Z] phase=path-selection step=phase-transition action=advance result=done message="path-selection complete -> phase-A (assessments)"
