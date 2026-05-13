@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "mode": "brownfield",
-  "currentPhase": "B2-exit",
-  "lastUpdated": "2026-05-13T02:05:00Z",
+  "currentPhase": "path-selection",
+  "lastUpdated": "2026-05-13T02:15:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -16,7 +16,9 @@
     "B2c_refinement_approval": "approved",
     "B2c_refinement_passes": 3,
     "B2c_refinement_outcome": "0 critical, 0 major, 4 minor (m3-1..m3-4 deferred to Phase A)",
-    "testability_gate": null,
+    "testability_gate": "approved",
+    "testability_gate_adr": "ADR-001",
+    "testability_gate_outcome": "Track A (full green baseline) for all 8 FRDs",
     "path_selection": null
   },
   "brownfield": {
@@ -145,17 +147,38 @@
         "known_limitations_count": 3
       }
     ],
-    "testability": null,
-    "track": null,
-    "testabilityChecklist": null,
+    "testability": "full",
+    "track": "A",
+    "testabilityChecklist": {
+      "evidenceGatheredAt": "2026-05-13T02:10:00Z",
+      "items": [
+        { "id": 1, "question": "Can the application be built and started locally?", "verdict": "pass", "evidence": "MSBuild ContosoUniversity.csproj exit 0; IIS Express present at C:/Program Files/IIS Express/iisexpress.exe; bindings https://localhost:44300 + http://localhost:58801 in src/ContosoUniversity/.vs/ContosoUniversity/config/applicationhost.config" },
+        { "id": 2, "question": "Are external dependencies reachable, mockable, or fakeable?", "verdict": "pass", "evidence": "sqllocaldb info MSSQLLocalDB -> v15.0.4382.1 installed; Web.config line 11 connection string Data Source=(LocalDb)/MSSQLLocalDB;Initial Catalog=ContosoUniversityNoAuthEFCore; EF Core uses EnsureCreated; in-process MessageQueueManager (no MSMQ)" },
+        { "id": 3, "question": "Can API endpoints be exercised via HTTP?", "verdict": "pass", "evidence": "45 endpoints in specs/contracts/api/*.yaml; no [Authorize] anywhere; CSRF tokens fetchable from forms; F-007 POSTs token-free" },
+        { "id": 4, "question": "Can the UI be rendered and interacted with via browser automation?", "verdict": "pass", "evidence": "Server-rendered Razor MVC, no SPA bootstrap, stable URL routes; Playwright not yet installed (npx playwright reports missing) -- bootstrap will add @playwright/test" },
+        { "id": 5, "question": "Is there a working dev/test environment configuration?", "verdict": "pass", "evidence": "Web.config carries connection string + httpRuntime maxRequestLength=10240 + executionTimeout=3600; no env vars, no secrets file" },
+        { "id": 6, "question": "Can the existing test suite be executed?", "verdict": "n/a", "evidence": "specs/docs/testing/coverage.md: 0 unit, 0 integration, 0 e2e files; only 5 manual-verification markdown docs" }
+      ],
+      "counts": { "pass": 5, "fail": 0, "na": 1 }
+    },
     "featureTracks": null,
     "greenBaseline": null,
     "behavioralDocs": null,
     "selectedPaths": null
   },
   "adrs": {
-    "nextNumber": 1,
-    "records": []
+    "nextNumber": 2,
+    "records": [
+      {
+        "number": 1,
+        "slug": "testability-gate",
+        "title": "Brownfield Testability Gate — Track A (Full Green Baseline)",
+        "status": "accepted",
+        "path": "specs/adrs/adr-001-testability-gate.md",
+        "date": "2026-05-13",
+        "recommendation": { "testability": "full", "track": "A" }
+      }
+    ]
   },
   "incrementPlan": null,
   "currentIncrement": null

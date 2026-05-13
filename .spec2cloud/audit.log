@@ -21,3 +21,8 @@
 [2026-05-13T02:05:01Z] phase=B2 step=B2c-spec-refinement action=pass-3-cross-cutting result=done message="0 critical, 0 major, 4 minor (m3-1 KL-AUTH-001 propagation, m3-2 KL-CSRF-001 on F-007, m3-3 notation legend, m3-4 polling cadence redundancy) — minors deferred to Phase A"
 [2026-05-13T02:05:02Z] phase=B2 step=B2c-human-gate action=human-approval result=approved message="user=alavil approved B2c spec refinement after 3 passes"
 [2026-05-13T02:05:03Z] phase=B2 step=B2-exit action=phase-transition result=advanced message="B2 spec-enable complete (PRD + 8 FRDs, 3-pass refinement) → testability-gate"
+[2026-05-13T02:10:00Z] phase=testability-gate step=evidence-gathering action=verify-checklist result=done message="5 pass, 0 fail, 1 n/a (LocalDB v15.0.4382.1, IIS Express present, applicationhost.config bindings 44300/58801, Web.config connection string verified, no [Authorize] anywhere, 0 existing tests)"
+[2026-05-13T02:10:01Z] phase=testability-gate step=adr-authoring action=create result=done message="specs/adrs/adr-001-testability-gate.md drafted (status=proposed) -- recommends Track A full green baseline for all 8 FRDs"
+[2026-05-13T02:10:02Z] phase=testability-gate step=human-gate action=present-for-signoff result=pending message="ADR-001 + 6-item checklist + Track A recommendation presented to user"
+[2026-05-13T02:15:00Z] phase=testability-gate step=human-gate action=human-approval result=approved message="user=alavil approved option (a) -- ADR-001 accepted, Track A (full green baseline) for all 8 FRDs"
+[2026-05-13T02:15:01Z] phase=testability-gate step=phase-transition action=advance result=done message="testability-gate complete -> path-selection (user pre-hinted rewrite + security; awaiting confirmation)"
