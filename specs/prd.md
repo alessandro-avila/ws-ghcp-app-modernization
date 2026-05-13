@@ -28,16 +28,16 @@ flowchart LR
     Courses --> Files
     Visitor --> Instructors --> DB
     Visitor --> Departments --> DB
-    Visitor --> Notifications --> DB
+    Visitor --> Notifications --> Queue
     Visitor --> QueueTest --> Queue
     Students -.publishes CRUD event.-> Queue
     Courses -.publishes CRUD event.-> Queue
     Instructors -.publishes CRUD event.-> Queue
     Departments -.publishes CRUD event.-> Queue
-    Queue -.background processor.-> DB
+    Notifications -.destructive drain (poll, max 10).-> Queue
 ```
 
-> The diagram reflects the **actual** implementation. It intentionally diverges from the documentation's "admin-only / Windows Authentication / MSMQ" framing — see §Discrepancies.
+> The diagram reflects the **actual** implementation. It intentionally diverges from the documentation's "admin-only / Windows Authentication / MSMQ" framing — see §Discrepancies Between Documentation and Implementation. Note: notifications are **not persisted to SQL**; the queue is in-memory only and data is lost on app-pool recycle.
 
 ---
 
@@ -81,11 +81,11 @@ The product is delivered as an ASP.NET MVC 5 web application running on .NET Fra
 | ID | Feature | Description | Priority | Dependencies |
 |---|---|---|---|---|
 | F-001 | Student Management | CRUD for students with paging, sorting, and free-text search on first/last name. Backed by `Person` (TPH discriminator `Student`). 8 controller actions across `StudentsController` + `Views/Students/*`. | P0 | F-006 (publishes notifications) |
-| F-002 | Course Management | CRUD for courses with manually-assigned `CourseID` (non-identity PK), department selection, and per-course teaching-material image upload (JPG/PNG/GIF/BMP, ≤ 5 MB, stored in `Uploads/TeachingMaterials/`). 7 controller actions across `CoursesController`. | P0 | F-004, F-006 |
-| F-003 | Instructor Management | CRUD for instructors (TPH `Instructor`) with optional office assignment (1:1 shared-PK with `OfficeAssignment`) and many-to-many course assignments via the join entity `CourseAssignment`. The `Edit` view bundles `InstructorIndexData` so course checkboxes can be set in one form. 6 controller actions across `InstructorsController`. | P0 | F-002, F-006 |
-| F-004 | Department Management | CRUD for academic departments. Each department has an optional administrator (`Instructor` reference), a budget (`money`), a start date, and a `RowVersion` concurrency token used by `Edit POST` to detect mid-edit conflicts and present a merge form. 7 controller actions across `DepartmentsController`. | P0 | F-003, F-006 |
-| F-005 | Enrollment Statistics | A single read-only view (`Home/About`) that groups enrollments by date and shows the count of students per enrollment date using the `EnrollmentDateGroup` view model. | P2 | F-001 |
-| F-006 | Real-Time Notification System | Cross-cutting subsystem. CRUD operations on F-001/F-002/F-003/F-004 publish a `Notification` to an **in-process** `NotificationQueueService`. A background processor persists each `Notification` to SQL via `NotificationsController.GetNotifications`. The dashboard page `/Notifications/Index` polls every 30 seconds and displays unread items in a top-right toast UI styled by `Content/notifications.css`. 3 controller actions in `NotificationsController` (`Index`, `GetNotifications`, `MarkAsRead`). | P1 | F-001, F-002, F-003, F-004 |
+| F-002 | Course Management | CRUD for courses with manually-assigned `CourseID` (non-identity PK), department selection, and per-course teaching-material image upload (JPG/PNG/GIF/BMP, ≤ 5 MB, stored in `Uploads/TeachingMaterials/`). 8 controller actions across `CoursesController` (Index, Details, Create GET/POST, Edit GET/POST, Delete GET/POST). | P0 | F-004, F-006 |
+| F-003 | Instructor Management | CRUD for instructors (TPH `Instructor`) with optional office assignment (1:1 shared-PK with `OfficeAssignment`) and many-to-many course assignments via the join entity `CourseAssignment`. The `Edit` view bundles `InstructorIndexData` so course checkboxes can be set in one form. 8 controller actions across `InstructorsController` (Index, Details, Create GET/POST, Edit GET/POST, Delete GET/POST). | P0 | F-002, F-006 |
+| F-004 | Department Management | CRUD for academic departments. Each department has an optional administrator (`Instructor` reference), a budget (`money`), a start date, and a `RowVersion` concurrency token used by `Edit POST` to detect mid-edit conflicts and present a merge form. 8 controller actions across `DepartmentsController` (Index, Details, Create GET/POST, Edit GET/POST, Delete GET/POST). | P0 | F-003, F-006 |
+| F-005 | Enrollment Statistics | A single read-only view (`Home/About`) that groups `db.Students` by `EnrollmentDate` and shows the number of students whose `EnrollmentDate` falls on each distinct date, projected through the `EnrollmentDateGroup` view model. (Source: `HomeController.About()` lines 18-26 — groups Students, not Enrollments.) | P2 | F-001 |
+| F-006 | Real-Time Notification System | Cross-cutting subsystem. CRUD operations on F-001/F-002/F-003/F-004 publish a `Notification` to an **in-process, in-memory** queue managed by `MessageQueueManager` (a process-wide singleton; **NOT** MSMQ). The dashboard page `/Notifications/Index` and the JS poller (`Scripts/notifications.js`, `checkInterval: 5000` → every 5 s) call `GET /Notifications/GetNotifications`, which **destructively drains** up to 10 unread items per call from the in-memory queue. Notifications are **not persisted** to SQL and are lost on IIS app-pool recycle. 3 controller actions in `NotificationsController` (`Index`, `GetNotifications`, `MarkAsRead` — the latter is a no-op stub because the in-memory queue has no read-state concept). ⚠ `NOTIFICATION_SYSTEM_README.md` and `README_MessageQueue.md` describe an MSMQ-backed admin-only system; both are historical narrative and contradicted by the code (see §Discrepancies Between Documentation and Implementation). | P1 | F-001, F-002, F-003, F-004 |
 | F-007 | Queue Diagnostic Tools | In-app diagnostic page (`/MessageQueueTest/Index`) that lets an operator send a synthetic notification, drain the queue, and inspect counts. Compiled into the production application; not an automated test. 5 controller actions in `MessageQueueTestController`. | P3 | F-006 |
 | F-008 | Static Pages | `Home/Index`, `Home/About`, `Home/Contact`, and a global `Error` view. Trivial Razor templates with no behavior. | P3 | — |
 
@@ -101,7 +101,7 @@ The product is delivered as an ASP.NET MVC 5 web application running on .NET Fra
 - **No HTTP-level caching** — There is no `OutputCache` attribute, no `ResponseCache`, no `Cache-Control` header configuration in `Web.config`.
 - **In-process memory cache** — `Microsoft.Extensions.Caching.Memory` is referenced but no `IMemoryCache` injection or usage was found in the controllers extracted under B1d.
 - **No CDN, no rate limiter, no load-test artifacts** — Nothing in the repository configures request-rate limits or load profiles.
-- **Notification polling cadence** — `Scripts/notifications.js` (referenced by the layout) polls `GetNotifications` at a fixed interval (per `NOTIFICATION_SYSTEM_README.md`, "auto-dismiss after 1 minute"; exact interval is encoded in JS not extracted in B1).
+- **Notification polling cadence** — `Scripts/notifications.js` (referenced by the layout) polls `/Notifications/GetNotifications` every **5 seconds** (`checkInterval: 5000` at line 7, used by `setInterval` at line 28). Toasts auto-dismiss after 60 s (line 99). Maximum 5 notifications visible concurrently (line 9, `maxNotifications: 5`).
 
 ### Security
 
@@ -195,18 +195,18 @@ sequenceDiagram
     DB-->>Ctl: ok (identity assigned)
     Ctl->>Q: Enqueue(Notification{Student, id, CREATE, "System"})
     Ctl-->>User: 302 Redirect → /Students
-    Q->>DB: Persist Notification row (background)
-    UI->>N: GET /Notifications/GetNotifications (poll)
-    N->>DB: Query unread Notifications
-    DB-->>N: rows
-    N-->>UI: JSON
-    UI-->>User: Toast appears top-right
+    Note over Q: Queue is in-process, in-memory only.<br/>No SQL persistence. No background processor.
+    UI->>N: GET /Notifications/GetNotifications (poll every 5 s)
+    N->>Q: Drain up to 10 messages (destructive read)
+    Q-->>N: rows (removed from queue)
+    N-->>UI: JSON { success, notifications[], count }
+    UI-->>User: Toast appears top-right (auto-dismiss 60 s)
     User->>N: POST /Notifications/MarkAsRead (no antiforgery)
-    N->>DB: Set IsRead = true; ReadAt = now
-    N-->>User: 200 OK
+    Note over N: MarkAsRead is a no-op stub —<br/>queue has no read-state concept.
+    N-->>User: 200 OK { success: true }
 ```
 
-> The sequence shows the real flow. Key reality checks: there is no auth handshake; the antiforgery token is present on `Students/Create` but absent on `MarkAsRead`; the queue persists asynchronously and is **not durable** across an app pool recycle.
+> The sequence shows the real flow. Key reality checks: there is no auth handshake; the antiforgery token is present on `Students/Create` but absent on `MarkAsRead`; the queue is **in-memory only and not durable** across an IIS app-pool recycle; `MarkAsRead` performs no server-side state change.
 
 ---
 

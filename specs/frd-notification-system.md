@@ -102,7 +102,7 @@ There is no transport between processes. A multi-instance deployment (web farm, 
 
 ### NFR-F-006-006: Polling cadence is fixed client-side
 
-The cadence (and any backoff behavior) is JavaScript in `Views/Shared/_Layout.cshtml` and `Content/notifications.css` companions. There is no server-side rate limit.
+The cadence is hardcoded in `Scripts/notifications.js` line 7: `checkInterval: 5000` (every **5 seconds**, not 30 s as some narrative documentation suggests). The interval is consumed by `setInterval` at line 28. There is no exponential backoff, no jitter, no Page Visibility API check (the poll continues at full rate when the tab is hidden), and no server-side rate limit. Toasts auto-dismiss after 60 s (line 99) and the UI caps the visible toast stack at 5 (line 9, `maxNotifications: 5`).
 
 ### NFR-F-006-007: User attribution is hardcoded
 
@@ -160,10 +160,11 @@ Producer/consumer with **in-process** message queue. The producer side is invoke
 - `MarkAsRead` is a stub — the in-memory queue has no read/unread concept.
 - No `[ValidateAntiForgeryToken]` on `MarkAsRead` — CSRF gap on a state-changing endpoint (currently low impact because the action is a no-op, but the endpoint is callable cross-origin).
 - No authorization on `/Notifications/Index`, in conflict with the README's "admin dashboard" framing.
-- All notifications attributed to `"System"` from `BaseController`; the only place that reads `User.Identity.Name` is `MessageQueueTestController`.
+- All notifications attributed to `"System"` from `BaseController`; the only place that reads `User.Identity.Name` is `MessageQueueTestController` (see F-007 §FR-F-007-001 — and even there the principal name is wrapped with a `"TestUser"` fallback). **Cross-FRD note:** the rewrite/security paths must treat F-006 producer attribution and F-007 principal flow as a single concern; otherwise centralizing auth in the rewrite will silently change F-007's empty-identity fallback behavior.
 - Two browser tabs polling the same server race for messages (destructive read).
 - Polling, not SSE/WebSockets — wasteful at high frequency and laggy at low frequency.
 - No bound on the in-memory queue depth — a producer outpacing the drain can grow memory unboundedly.
+- **Stale documentation in `Scripts/notifications.js` line 1**: the file's header comment reads `// Notification System for Admin Users`, but the JS performs no auth check and the endpoint it polls (`/Notifications/GetNotifications`) returns to anyone. The header is dead documentation aligned with the same MSMQ/admin-only narrative carried by `NOTIFICATION_SYSTEM_README.md` and `README_MessageQueue.md`.
 
 ### Integration Points
 

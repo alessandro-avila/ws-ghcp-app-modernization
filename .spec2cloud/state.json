@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "mode": "brownfield",
-  "currentPhase": "B2",
-  "lastUpdated": "2026-05-13T01:35:00Z",
+  "currentPhase": "B2-exit",
+  "lastUpdated": "2026-05-13T02:05:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -12,8 +12,10 @@
     "B0_onboarding": "approved",
     "B1_extraction_review": "approved",
     "B2a_prd_approval": "approved",
-    "B2b_frd_approval": "pending",
-    "B2c_refinement_approval": null,
+    "B2b_frd_approval": "approved",
+    "B2c_refinement_approval": "approved",
+    "B2c_refinement_passes": 3,
+    "B2c_refinement_outcome": "0 critical, 0 major, 4 minor (m3-1..m3-4 deferred to Phase A)",
     "testability_gate": null,
     "path_selection": null
   },

@@ -146,7 +146,7 @@ Anyone who reaches the URL can create, edit, or delete any course. Image uploads
 
 | File Path | Role |
 |---|---|
-| `src/ContosoUniversity/Controllers/CoursesController.cs` | Route handlers (7 actions, including upload handling) |
+| `src/ContosoUniversity/Controllers/CoursesController.cs` | Route handlers (8 actions: Index, Details, Create GET/POST, Edit GET/POST, Delete GET/POST — POST handlers include upload handling) |
 | `src/ContosoUniversity/Controllers/BaseController.cs` | DbContext + notification helper |
 | `src/ContosoUniversity/Models/Course.cs` | Entity model with `[DatabaseGeneratedOption.None]` on `CourseID` |
 | `src/ContosoUniversity/Views/Courses/*.cshtml` | Index/Details/Create/Edit/Delete views |

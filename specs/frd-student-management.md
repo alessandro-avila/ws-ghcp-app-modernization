@@ -5,6 +5,8 @@
 **Priority**: P0
 **Last Updated**: 2026-05-13
 
+> **Notation.** Acceptance Criteria marked **(CURRENT BEHAVIOR)** describe what the code does today and may diverge from documented intent. Each such item has a corresponding entry in §Known Limitations and is a Track A green-baseline test capture candidate.
+
 ## Description
 
 Student Management is the canonical CRUD surface of ContosoUniversity for the `Student` subtype of the `Person` table-per-hierarchy. It gives any web visitor the ability to list, search, sort, paginate, view, create, edit, and delete student records, and the data flows through the unified notification pipeline (F-006) so that every successful create/update/delete becomes a notification event.
@@ -37,7 +39,7 @@ This feature is the most exercised path in the application and the one with the 
 **Acceptance Criteria:**
 - GIVEN a valid student `id` WHEN I open `/Students/Details/{id}` THEN I see the student's name, enrollment date, and a list of their enrollments with course titles
 - GIVEN a missing `id` WHEN I open `/Students/Details` THEN the response is HTTP 400 (`HttpStatusCodeResult(BadRequest)`)
-- GIVEN an `id` that does not match any student WHEN I open `/Students/Details/{id}` THEN the application currently throws `InvalidOperationException` (because the controller uses `.Single()`); the intended behavior was a 404 (`HttpNotFoundResult`)
+- **(CURRENT BEHAVIOR)** GIVEN an `id` with no matching student WHEN I open `/Students/Details/{id}` THEN the response is HTTP 500 because `StudentsController.Details` calls `.Single()` (raises `InvalidOperationException` instead of returning the unreachable `HttpNotFoundResult`). See §Known Limitations KL-F-001-001.
 
 ### US-F-001-003: Create a student
 
@@ -174,7 +176,7 @@ Classic ASP.NET MVC 5 controller pattern. `StudentsController` inherits from `Ba
 
 ### Known Limitations
 
-- `Details(int? id)` uses `db.Students.Single(...)`; a missing `id` raises `InvalidOperationException` instead of returning the intended 404 (`HttpNotFoundResult` line is unreachable).
+- **KL-F-001-001 — `Details` lookup uses `.Single()` (Track A green-baseline candidate; bug-fix increment scoped).** `StudentsController.Details(int? id)` calls `db.Students.Single(...)`. A missing or unknown `id` raises `InvalidOperationException` and surfaces as HTTP 500. The documented intent is HTTP 404 via the (unreachable) `HttpNotFoundResult` branch. A bug-fix increment must change `.Single()` → `.SingleOrDefault()` and update both the AC in US-F-001-002 and the green-baseline test in lockstep — otherwise the regression net will assert the bug forever.
 - Page size of 3 is hardcoded in `StudentsController.Index` and would normally be a configurable value.
 - The inline comment "Admins and Teachers can view" is documentation-only — there is no role-based check.
 - Concurrent edits to the same student are not detected (no concurrency token on `Person`); last write wins.
