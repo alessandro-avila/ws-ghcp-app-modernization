@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T03:00:00Z",
+  "lastUpdated": "2026-05-14T03:30:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -350,8 +350,17 @@
     "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007"],
     "frd": null,
     "status": "in-progress",
-    "step": "start",
+    "step": "sub-task-decomposition",
     "startedAt": "2026-05-14T03:00:00Z",
-    "notes": "First rewrite increment - foundation only. Establishes src/ContosoUniversity.Web/ (ASP.NET Core 8 MVC + EF Core 8 + Microsoft.Identity.Web). Legacy app at src/ContosoUniversity/ continues to run in parallel until rw-008 cutover. Significantly larger than sec-* increments; expect to break into sub-tasks."
+    "decompositionDoc": "specs/tasks/rw-001-subtasks.md",
+    "subTasks": [
+      { "id": "rw-001a", "title": "Project scaffold + EF Core 8 baseline + legacy parity (no auth yet)", "status": "in-progress", "step": "start", "externalBlockers": [], "effortDays": 1.5 },
+      { "id": "rw-001b", "title": "Cookie auth + ASP.NET Core Identity + dev-stub sign-in (no Entra yet)", "status": "planned", "externalBlockers": [], "effortDays": 1.0 },
+      { "id": "rw-001d", "title": "Security headers + exception handler + structured logging + request timeout", "status": "planned", "externalBlockers": [], "effortDays": 0.5 },
+      { "id": "rw-001e", "title": "Data Protection + Key Vault + secrets management + Application Insights", "status": "planned", "externalBlockers": ["Azure Key Vault provisioned (deferred to deploy)", "Application Insights workspace provisioned (deferred to deploy)"], "effortDays": 0.5 },
+      { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "planned", "externalBlockers": ["USER ACTION: Microsoft Entra tenant + app registration + client secret + 2 test users"], "effortDays": 0.5 }
+    ],
+    "activeSubTask": "rw-001a",
+    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). Each sub-increment goes through Track-A red->green pipeline and ships independently. Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
   }
 }
