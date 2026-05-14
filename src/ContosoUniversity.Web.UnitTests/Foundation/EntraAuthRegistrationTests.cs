@@ -2,7 +2,6 @@ using System.IO;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -40,35 +39,56 @@ public class EntraAuthRegistrationTests : IClassFixture<WebApplicationFactory<Pr
     [Fact(DisplayName = "OpenID Connect is the default challenge scheme when AzureAd:ClientId is configured (rw-001c AC #3, ADR-008)")]
     public async Task OpenIdConnectIsDefaultChallengeWhenAzureAdConfigured()
     {
-        // Arrange: clone the factory and inject an in-memory AzureAd config block
-        // representing a fully-provisioned (placeholder) Entra app registration. The
-        // values are syntactically valid GUIDs so Microsoft.Identity.Web's startup
-        // option-validation succeeds; they are NOT real and no network call is made
-        // because the test never issues an actual challenge.
-        using var entraFactory = _factory.WithWebHostBuilder(builder =>
+        // Arrange: WebApplicationBuilder.Configuration is read by Program.cs BEFORE
+        // builder.Build() runs, so configuration sources added via WithWebHostBuilder
+        // (which only fire during Build) are invisible to the AzureAd:ClientId gate.
+        // The only configuration source loaded by WebApplication.CreateBuilder() that
+        // we can mutate from a test is the process environment. Setting double-
+        // underscore env vars matches the default ConfigurationManager mapping
+        // ("AzureAd__ClientId" -> "AzureAd:ClientId"). Values are syntactically valid
+        // GUIDs so Microsoft.Identity.Web's option-validation succeeds; they are NOT
+        // real and no network call is made because the test never issues a challenge.
+        var entries = new Dictionary<string, string?>
         {
-            builder.ConfigureAppConfiguration((_, cfg) =>
+            ["AzureAd__Instance"] = "https://login.microsoftonline.com/",
+            ["AzureAd__Domain"] = "contoso.onmicrosoft.com",
+            ["AzureAd__TenantId"] = "00000000-0000-0000-0000-000000000000",
+            ["AzureAd__ClientId"] = "00000000-0000-0000-0000-000000000001",
+            ["AzureAd__CallbackPath"] = "/signin-oidc",
+            ["AzureAd__SignedOutCallbackPath"] = "/signout-callback-oidc",
+        };
+
+        var previous = new Dictionary<string, string?>();
+        foreach (var kv in entries)
+        {
+            previous[kv.Key] = Environment.GetEnvironmentVariable(kv.Key);
+            Environment.SetEnvironmentVariable(kv.Key, kv.Value);
+        }
+
+        try
+        {
+            // Build a brand-new factory (NOT the class-fixture instance) so the
+            // host is constructed AFTER the env vars are in place. The class
+            // fixture's host was built at construction time and would have already
+            // baked in the (empty) AzureAd:ClientId value.
+            await using var entraFactory = new WebApplicationFactory<Program>();
+            var schemeProvider = entraFactory.Services.GetRequiredService<IAuthenticationSchemeProvider>();
+
+            // Act
+            var defaultChallengeScheme = await schemeProvider.GetDefaultChallengeSchemeAsync();
+
+            // Assert
+            Assert.NotNull(defaultChallengeScheme);
+            Assert.Equal(OpenIdConnectSchemeName, defaultChallengeScheme!.Name);
+        }
+        finally
+        {
+            // Restore process environment so other tests in this run see no leakage.
+            foreach (var kv in previous)
             {
-                cfg.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["AzureAd:Instance"] = "https://login.microsoftonline.com/",
-                    ["AzureAd:Domain"] = "contoso.onmicrosoft.com",
-                    ["AzureAd:TenantId"] = "00000000-0000-0000-0000-000000000000",
-                    ["AzureAd:ClientId"] = "00000000-0000-0000-0000-000000000001",
-                    ["AzureAd:CallbackPath"] = "/signin-oidc",
-                    ["AzureAd:SignedOutCallbackPath"] = "/signout-callback-oidc",
-                });
-            });
-        });
-
-        var schemeProvider = entraFactory.Services.GetRequiredService<IAuthenticationSchemeProvider>();
-
-        // Act
-        var defaultChallengeScheme = await schemeProvider.GetDefaultChallengeSchemeAsync();
-
-        // Assert
-        Assert.NotNull(defaultChallengeScheme);
-        Assert.Equal(OpenIdConnectSchemeName, defaultChallengeScheme!.Name);
+                Environment.SetEnvironmentVariable(kv.Key, kv.Value);
+            }
+        }
     }
 
     [Fact(DisplayName = "Cookie scheme remains the default challenge when AzureAd:ClientId is empty — dev-stub fallback (ADR-008)")]

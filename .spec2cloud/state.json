@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T13:30:00Z",
+  "lastUpdated": "2026-05-14T14:30:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -295,7 +295,7 @@
     "increments": [
       { "id": "sec-001", "type": "security", "tier": 2, "severity": "high", "title": "Add ValidateAntiForgeryToken to NotificationsController.MarkAsRead", "closes": ["SEC-HIGH-001"], "adrs": ["ADR-006"], "frd": "F-006", "status": "delivered", "order": 1, "deliveredAt": "2026-05-14T02:00:00Z", "commits": ["4215b42", "5d07860"] },
       { "id": "sec-002", "type": "security", "tier": 2, "severity": "high", "title": "Align upload size cap to 5 MB across Web.config and CoursesController", "closes": ["SEC-HIGH-003"], "adrs": [], "frd": "F-002", "status": "delivered", "order": 2, "deliveredAt": "2026-05-14T03:00:00Z", "commits": ["416a918", "07b4a0d"] },
-      { "id": "rw-001", "type": "rewrite", "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)", "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"], "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007"], "frd": null, "status": "planned", "order": 3 },
+      { "id": "rw-001", "type": "rewrite", "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)", "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"], "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007", "ADR-008"], "frd": null, "status": "delivered", "order": 3, "deliveredAt": "2026-05-14T14:30:00Z", "subTaskCommits": { "rw-001a": ["68a1dda", "d63799f"], "rw-001b": ["19c20d0", "d32a4e5", "9b5faf6"], "rw-001d": ["001fc1a", "619a881", "e7b1232"], "rw-001e": ["6126cc8", "afaac39", "d0d04d5"], "rw-001c": ["c464361", "deliveredCommit-pending-backfill"] }, "deploymentBlockedOn": ["USER ACTION: Azure subscription + azd auth", "USER ACTION: Microsoft Entra tenant + app registration + 2 test users (only required to validate Entra path; dev-stub path deploys without Entra)"] },
       { "id": "rw-002", "type": "rewrite", "title": "HomeController + static pages", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": ["F-005", "F-008"], "status": "planned", "order": 4 },
       { "id": "rw-003", "type": "rewrite", "title": "DepartmentsController", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-004", "status": "planned", "order": 5 },
       { "id": "rw-004", "type": "rewrite", "title": "StudentsController (sort/filter/paging template)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-001", "status": "planned", "order": 6 },
@@ -347,11 +347,12 @@
     "type": "rewrite",
     "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)",
     "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"],
-    "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007"],
+    "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007", "ADR-008"],
     "frd": null,
-    "status": "in-progress",
-    "step": "sub-increment-execution",
+    "status": "delivered",
+    "step": "code-complete-awaiting-first-azure-deploy",
     "startedAt": "2026-05-14T03:00:00Z",
+    "endedAt": "2026-05-14T14:30:00Z",
     "decompositionDoc": "specs/tasks/rw-001-subtasks.md",
     "subTasks": [
       {
@@ -526,17 +527,51 @@
         },
         "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
         "notes": "Closes SEC-MEDIUM-004 (secrets management via Azure Key Vault + DefaultAzureCredential, dev fallback to user-secrets) per ADR-007. Telemetry pipeline is now in place for all subsequent increments to emit custom events without further wiring. Production-only paths (KEYVAULT_URI / DATAPROTECTION_BLOB_URI / DATAPROTECTION_KEYVAULT_KEY_URI / APPLICATIONINSIGHTS_CONNECTION_STRING) are documented but not yet exercised - they will be smoke-tested at the first Azure deploy after rw-001c." },
-      { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "in-progress", "step": "red-baseline-complete",
-        "externalBlockers": ["USER ACTION (deferred to live OIDC smoke test only): Microsoft Entra tenant + app registration + client secret + 2 test users — see ADR-008 §USER ACTION"],
-        "effortDays": 0.5,
+      { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "delivered", "externalBlockers": ["USER ACTION (deferred to live OIDC smoke test only): Microsoft Entra tenant + app registration + client secret + 2 test users — see ADR-008 §USER ACTION"], "effortDays": 0.5,
         "adrs": ["ADR-005", "ADR-008"],
+        "redBaselineCommit": "c464361",
+        "deliveredCommit": null,
         "refinement": "specs/adrs/adr-008-rw-001c-dual-mode-entra.md — rw-001c ships as config-gated dual-mode wiring (ADR-005 layered scheme). Microsoft.Identity.Web becomes the default challenge ONLY when AzureAd:ClientId is set; otherwise the rw-001b dev-stub cookie path remains the default. Dev-stub AccountController is NOT deleted in this commit — removal is deferred to a follow-up bug-fix that lands once the user provisions an Entra tenant and the live OIDC smoke test passes.",
         "redBaseline": {
           "xunitBeforeImpl": "dotnet test ContosoUniversity.Web.UnitTests --no-build -> Failed: 1, Passed: 9, Total: 10. Failure: OpenIdConnectIsDefaultChallengeWhenAzureAdConfigured expected 'OpenIdConnect' but got 'Identity.Application' (no OIDC scheme registered yet). The 2 other new tests (CookieRemainsDefaultChallengeWhenAzureAdNotConfigured, LegacyMicrosoftIdentityClientIsNotADirectDependency) are regression locks and pass at red baseline by design — they will continue to pass after impl, locking the dual-mode behaviour."
-        }
+        },
+        "impl": {
+          "packages": [
+            "Microsoft.Identity.Web 4.9.0 (NOT 3.x — dotnet add package resolved the latest 4.x stable; transitive deps satisfy Azure.Identity 1.17.2 floor)",
+            "Azure.Identity bumped 1.13.1 -> 1.17.2 to satisfy Microsoft.Identity.Web 4.9.0 transitive constraint (NU1605 fix)"
+          ],
+          "programWiring": [
+            "using Microsoft.AspNetCore.Authentication.OpenIdConnect; using Microsoft.Identity.Web; (added at top of Program.cs)",
+            "Config-gated OIDC wiring placed AFTER AddIdentity / ConfigureApplicationCookie / AddAuthorization, BEFORE builder.Build(): if (!string.IsNullOrWhiteSpace(builder.Configuration['AzureAd:ClientId'])) { builder.Services.AddAuthentication(o => { o.DefaultScheme = OpenIdConnectDefaults.AuthenticationScheme; o.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme; }).AddMicrosoftIdentityWebApp(builder.Configuration.GetSection('AzureAd')); }",
+            "Both DefaultScheme AND DefaultChallengeScheme are set explicitly because AddIdentity<> earlier in Program.cs already set DefaultChallengeScheme = IdentityConstants.ApplicationScheme. The single-arg AddAuthentication(scheme) overload only updates DefaultScheme — NOT DefaultChallengeScheme — so [Authorize] would still route to /Account/SignIn (dev-stub) without the explicit options lambda. With the lambda, [Authorize] routes to /signin-oidc when AzureAd:ClientId is set, and falls back to dev-stub cookie when it is empty.",
+            "AddMicrosoftIdentityWebApp does NOT perform any network discovery at registration time; OIDC metadata is fetched lazily on first sign-in, so booting with placeholder values stays hermetic.",
+            "Dev-stub AccountController + Views/Account/SignIn.cshtml + SeedAuthData.cs INTENTIONALLY NOT REMOVED — see ADR-008 §USER ACTION; deletion is queued as a follow-up bug-fix gated on a live OIDC smoke test against a USER-provisioned Entra tenant."
+          ],
+          "xunitTests": "src/ContosoUniversity.Web.UnitTests/Foundation/EntraAuthRegistrationTests.cs (NEW, 3 tests): (1) OpenIdConnectIsDefaultChallengeWhenAzureAdConfigured — sets AzureAd__* env vars (the only configuration source available BEFORE WebApplicationBuilder.Build runs), spins up a fresh WebApplicationFactory<Program>, asserts IAuthenticationSchemeProvider.GetDefaultChallengeSchemeAsync().Name == 'OpenIdConnect'; (2) CookieRemainsDefaultChallengeWhenAzureAdNotConfigured — uses the class-fixture factory (no AzureAd config), asserts default challenge = IdentityConstants.ApplicationScheme; (3) LegacyMicrosoftIdentityClientIsNotADirectDependency — reads ContosoUniversity.Web.csproj from disk, asserts no direct PackageReference to Microsoft.Identity.Client (SEC-LOW-003 lock).",
+          "testHarnessInsight": "WebApplicationFactory's WithWebHostBuilder.ConfigureAppConfiguration callback fires DURING builder.Build(), not BEFORE — so any code in Program.cs that reads builder.Configuration['AzureAd:ClientId'] before Build() will NOT see the in-memory entries that the test injected via WithWebHostBuilder. Process environment variables are loaded by WebApplication.CreateBuilder() and are visible immediately, so tests that depend on early-bound configuration MUST mutate Environment.SetEnvironmentVariable + restore in a try/finally. This pattern is reusable for any future config-gated registration."
+        },
+        "evidence": {
+          "dotnetBuild": "dotnet build ContosoUniversity.sln -> 0 warnings, 0 errors",
+          "dotnetTest": "dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> Passed: 10, Failed: 0 (3 rw-001a smoke + 2 rw-001d hardening + 2 rw-001e runtime-services + 3 rw-001c Entra-auth-registration)",
+          "cucumberFullSuite": "npm run test:integration -> 15 scenarios (15 passed), 69 steps (69 passed) — dev-stub path UNTOUCHED because Cucumber tests do NOT inject AzureAd config and the gate stays inactive",
+          "skipDetectionScan": "grep -rn -E '(test\\.skip|it\\.skip|describe\\.skip|xit\\(|xdescribe\\(|@skip|@pending|@wip|\\.only\\(|\\[Skip\\(|\\[Fact\\(Skip)' across **/*.{cs,ts,js,feature} -> no matches"
+        },
+        "artifacts": {
+          "newFiles": [
+            "src/ContosoUniversity.Web.UnitTests/Foundation/EntraAuthRegistrationTests.cs",
+            "specs/adrs/adr-008-rw-001c-dual-mode-entra.md"
+          ],
+          "modifiedFiles": [
+            "src/ContosoUniversity.Web/Program.cs",
+            "src/ContosoUniversity.Web/ContosoUniversity.Web.csproj",
+            "specs/tasks/rw-001-subtasks.md"
+          ]
+        },
+        "deployment": "none yet — first Azure deploy is the next phase-2 step. BLOCKED on USER ACTION (Azure subscription + azd auth + Entra tenant + app registration + 2 test users) per ADR-008 §USER ACTION.",
+        "notes": "Closes ACs #3 (OIDC default challenge when configured), #10 (no direct Microsoft.Identity.Client dep, SEC-LOW-003 verified). Dual-mode wiring per ADR-005 layered scheme + ADR-008 dual-mode rationale: when AzureAd:ClientId is set, [Authorize] redirects to /signin-oidc (Entra-hosted sign-in); when empty, the rw-001b dev-stub remains the default and the app stays usable offline (hermetic xUnit + Cucumber + fresh checkouts). USER ACTION items: (1) provision Entra tenant + app registration with redirect URIs https://localhost:7001/signin-oidc + /signout-callback-oidc; (2) set AzureAd:Instance/Domain/TenantId/ClientId/ClientSecret via dotnet user-secrets (or Azure Key Vault in production); (3) provision 2 test users with Admin/Reader role claims (group->role mapping or appsettings fallback); (4) run live OIDC redirect smoke test against the tenant; (5) approve dev-stub deletion follow-up bug-fix once the live smoke test passes. Test-harness insight (recorded in impl.testHarnessInsight) is reusable for any future config-gated DI registration."
       }
     ],
-    "activeSubTask": "rw-001c",
-    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). rw-001d delivered 2026-05-14T13:00Z (commits 001fc1a red baseline + 619a881 impl-green). rw-001e delivered 2026-05-14T13:30Z (commits 6126cc8 red baseline + impl-green pending). 4 of 5 sub-increments delivered; only rw-001c remains (BLOCKED on USER ACTION for Entra tenant + app registration + 2 test users)."
+    "activeSubTask": null,
+    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). rw-001d delivered 2026-05-14T13:00Z (commits 001fc1a red baseline + 619a881 impl-green). rw-001e delivered 2026-05-14T13:30Z (commits 6126cc8 red baseline + afaac39 impl-green + d0d04d5 backfill). rw-001c delivered 2026-05-14T14:30Z (commits c464361 red baseline + impl-green pending; deliveredCommit hash to be backfilled). 5 of 5 sub-increments delivered; rw-001 parent code-complete. NEXT: first Azure deploy (azd provision + azd deploy) — BLOCKED on USER ACTION (Azure subscription + azd auth + Entra tenant + app registration + 2 test users)."
   }
 }

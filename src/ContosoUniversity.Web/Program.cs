@@ -3,12 +3,14 @@ using ContosoUniversity.Web.Data;
 using ContosoUniversity.Web.Identity;
 using ContosoUniversity.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -144,6 +146,37 @@ if (!string.IsNullOrWhiteSpace(dataProtectionKeyVaultKeyUri))
 // the value is empty and telemetry is silently dropped, which is the desired
 // behaviour for hermetic test runs.
 builder.Services.AddApplicationInsightsTelemetry();
+
+// rw-001c (ADR-005 layered scheme + ADR-008 dual-mode rationale): config-gated
+// Microsoft Entra ID OpenID Connect wiring. When AzureAd:ClientId is set, the
+// OIDC handler becomes the default *challenge* scheme so [Authorize] redirects
+// route to /signin-oidc (the Entra-hosted sign-in page) instead of the dev-stub
+// /Account/SignIn form. When AzureAd:ClientId is empty (current dev/test
+// reality, hermetic xUnit / Cucumber runs, fresh checkouts), the rw-001b
+// ASP.NET Core Identity dev-stub registered above remains the default and the
+// app stays usable offline. The dev-stub `AccountController` is intentionally
+// NOT removed in this commit — its deletion is queued as a follow-up bug-fix
+// gated on the live OIDC smoke test against a USER-provisioned Entra tenant
+// (see ADR-008 §USER ACTION). Note: AddMicrosoftIdentityWebApp does not perform
+// any network discovery at registration time; OIDC metadata is fetched lazily
+// on first sign-in, so booting with placeholder values stays hermetic.
+var azureAdClientId = builder.Configuration["AzureAd:ClientId"];
+if (!string.IsNullOrWhiteSpace(azureAdClientId))
+{
+    // AddIdentity<> above already set both DefaultScheme and DefaultChallengeScheme
+    // to IdentityConstants.ApplicationScheme. The single-argument overload of
+    // AddAuthentication(scheme) only updates DefaultScheme, leaving the cookie
+    // value in DefaultChallengeScheme — which would route [Authorize] back to the
+    // dev-stub form. Setting both options explicitly here is what makes Entra OIDC
+    // the actual challenge target when the gate is open.
+    builder.Services
+        .AddAuthentication(options =>
+        {
+            options.DefaultScheme = OpenIdConnectDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
+        })
+        .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"));
+}
 
 var app = builder.Build();
 
