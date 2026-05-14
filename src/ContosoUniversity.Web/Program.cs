@@ -1,14 +1,30 @@
+using Azure.Identity;
 using ContosoUniversity.Web.Data;
 using ContosoUniversity.Web.Identity;
 using ContosoUniversity.Web.Middleware;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// rw-001e (SEC-MEDIUM-004 + ADR-007): in production, app secrets (DB connection
+// strings, Application Insights connection string, Identity provider client
+// secret) are sourced from Azure Key Vault using the host's managed identity.
+// In dev, this branch is skipped and `dotnet user-secrets` provides equivalent
+// out-of-source-tree storage. The KEYVAULT_URI environment variable / config
+// key is the gate so the dev test suite never reaches Azure.
+var keyVaultUri = builder.Configuration["KEYVAULT_URI"];
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(
+        new Uri(keyVaultUri),
+        new DefaultAzureCredential());
+}
 
 // rw-001d (SEC-MEDIUM-005): replace the default text console formatter with the
 // JSON formatter so every log line is emitted as a single-line JSON document
@@ -86,6 +102,48 @@ builder.Services.AddRequestTimeouts(options =>
         TimeoutStatusCode = StatusCodes.Status504GatewayTimeout
     };
 });
+
+// rw-001e (SEC-MEDIUM-004 + ADR-007): explicit ApplicationDiscriminator pins the
+// data-protection key isolation boundary to a stable identifier instead of the
+// (potentially renamed) host assembly. Persistence is environment-aware:
+//   * Dev: file-system under %LOCALAPPDATA%/ContosoUniversity/keys (per-developer key ring).
+//   * Prod: Azure Blob storage holds the key ring, optionally protected at rest by an
+//          Azure Key Vault key. Both Azure paths are gated on environment variables so the
+//          dev test suite remains hermetic and never reaches the cloud.
+var dataProtectionBuilder = builder.Services
+    .AddDataProtection()
+    .SetApplicationName("ContosoUniversity");
+
+var dataProtectionBlobUri = builder.Configuration["DATAPROTECTION_BLOB_URI"];
+if (!string.IsNullOrWhiteSpace(dataProtectionBlobUri))
+{
+    dataProtectionBuilder.PersistKeysToAzureBlobStorage(
+        new Uri(dataProtectionBlobUri),
+        new DefaultAzureCredential());
+}
+else
+{
+    var localKeyDir = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ContosoUniversity",
+        "keys");
+    Directory.CreateDirectory(localKeyDir);
+    dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(localKeyDir));
+}
+
+var dataProtectionKeyVaultKeyUri = builder.Configuration["DATAPROTECTION_KEYVAULT_KEY_URI"];
+if (!string.IsNullOrWhiteSpace(dataProtectionKeyVaultKeyUri))
+{
+    dataProtectionBuilder.ProtectKeysWithAzureKeyVault(
+        new Uri(dataProtectionKeyVaultKeyUri),
+        new DefaultAzureCredential());
+}
+
+// rw-001e: register the Application Insights pipeline. The connection string is
+// read from configuration (key APPLICATIONINSIGHTS_CONNECTION_STRING). In dev
+// the value is empty and telemetry is silently dropped, which is the desired
+// behaviour for hermetic test runs.
+builder.Services.AddApplicationInsightsTelemetry();
 
 var app = builder.Build();
 

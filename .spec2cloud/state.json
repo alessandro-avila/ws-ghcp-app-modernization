@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T13:00:00Z",
+  "lastUpdated": "2026-05-14T13:30:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -489,10 +489,45 @@
         },
         "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
         "notes": "Closes SEC-MEDIUM-001 (friendly error pages, no leaked stack traces), SEC-MEDIUM-002 (5 standard security response headers on every response), SEC-MEDIUM-005 (JSON console formatter for structured log ingestion), SEC-MEDIUM-006 (30-second default request timeout per ADR-006). Note: in Development the friendly error pipeline replaces the framework's DeveloperExceptionPage so the same masking applies in every environment — this is intentional per SEC-MEDIUM-001 (DeveloperExceptionPage explicitly leaks stack traces)." },
-      { "id": "rw-001e", "title": "Data Protection + Key Vault + secrets management + Application Insights", "status": "planned", "externalBlockers": ["Azure Key Vault provisioned (deferred to deploy)", "Application Insights workspace provisioned (deferred to deploy)"], "effortDays": 0.5 },
+      { "id": "rw-001e", "title": "Data Protection + Key Vault + secrets management + Application Insights", "status": "delivered", "externalBlockers": ["Azure Key Vault provisioned (deferred to deploy)", "Application Insights workspace provisioned (deferred to deploy)"], "effortDays": 0.5,
+        "redBaselineCommit": "6126cc8",
+        "redBaseline": {
+          "xunitBeforeImpl": "dotnet test ContosoUniversity.Web.UnitTests --no-build -> Failed: 2, Passed: 5, Total: 7. Failures: (1) DataProtectionApplicationDiscriminatorMatchesContosoUniversity expected 'ContosoUniversity' but got 'ContosoUniversity.Web' (default WebApplicationBuilder uses the assembly name), (2) ApplicationInsightsTelemetryClientIsRegistered Assert.NotNull() Failure - TelemetryClient unresolved without explicit AddApplicationInsightsTelemetry() call.",
+          "cucumberRegressionBeforeImpl": "Cucumber harness intentionally untouched; rw-001d 15/15 suite remains green pre-impl."
+        },
+        "impl": {
+          "packages": [
+            "Microsoft.ApplicationInsights.AspNetCore 2.22.0 (added in red-baseline commit 6126cc8)",
+            "Azure.Identity 1.13.1",
+            "Azure.Extensions.AspNetCore.Configuration.Secrets 1.3.2 (production AddAzureKeyVault config provider)",
+            "Azure.Extensions.AspNetCore.DataProtection.Blobs 1.3.4 (production PersistKeysToAzureBlobStorage)",
+            "Azure.Extensions.AspNetCore.DataProtection.Keys 1.3.0 (production ProtectKeysWithAzureKeyVault)"
+          ],
+          "userSecrets": "<UserSecretsId>contoso-university-web-rewrite-3a7b1c8e</UserSecretsId> added to ContosoUniversity.Web.csproj so dotnet user-secrets set ... works out of the box for dev secrets.",
+          "configurationKeyVault": "Program.cs (top): if KEYVAULT_URI is set, builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential()) - gated so dev/test runs never reach Azure.",
+          "dataProtection": "Program.cs (services): AddDataProtection().SetApplicationName('ContosoUniversity'); persistence is environment-aware: when DATAPROTECTION_BLOB_URI is set, PersistKeysToAzureBlobStorage; otherwise PersistKeysToFileSystem(%LOCALAPPDATA%/ContosoUniversity/keys); when DATAPROTECTION_KEYVAULT_KEY_URI is set, ProtectKeysWithAzureKeyVault wraps the keys at rest.",
+          "applicationInsights": "Program.cs (services): AddApplicationInsightsTelemetry() - reads APPLICATIONINSIGHTS_CONNECTION_STRING from configuration; in dev the value is empty and telemetry is silently dropped, which is the desired behaviour for hermetic test runs."
+        },
+        "evidence": {
+          "dotnetBuild": "dotnet build ContosoUniversity.sln -> 0 warnings, 0 errors",
+          "dotnetTest": "dotnet test ContosoUniversity.Web.UnitTests --no-build -> Passed: 7, Failed: 0 (3 rw-001a smoke + 2 rw-001d hardening + 2 rw-001e runtime-services)",
+          "cucumberFullSuite": "npm run test:integration -> 15 scenarios (15 passed), 69 steps (69 passed)",
+          "manualLogConfirmation": "dotnet run launch with the new wiring still emits single-line JSON log records on stdout - verified, including 'Now listening on: https://localhost:7001' and 'Hosting environment: Development'."
+        },
+        "artifacts": {
+          "newFiles": [
+            "src/ContosoUniversity.Web.UnitTests/Foundation/RuntimeServicesTests.cs"
+          ],
+          "modifiedFiles": [
+            "src/ContosoUniversity.Web/Program.cs",
+            "src/ContosoUniversity.Web/ContosoUniversity.Web.csproj"
+          ]
+        },
+        "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
+        "notes": "Closes SEC-MEDIUM-004 (secrets management via Azure Key Vault + DefaultAzureCredential, dev fallback to user-secrets) per ADR-007. Telemetry pipeline is now in place for all subsequent increments to emit custom events without further wiring. Production-only paths (KEYVAULT_URI / DATAPROTECTION_BLOB_URI / DATAPROTECTION_KEYVAULT_KEY_URI / APPLICATIONINSIGHTS_CONNECTION_STRING) are documented but not yet exercised - they will be smoke-tested at the first Azure deploy after rw-001c." },
       { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "planned", "externalBlockers": ["USER ACTION: Microsoft Entra tenant + app registration + client secret + 2 test users"], "effortDays": 0.5 }
     ],
-    "activeSubTask": "rw-001e",
-    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). rw-001d delivered 2026-05-14T13:00Z (commits 001fc1a red baseline + 619a881 impl-green). Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
+    "activeSubTask": "rw-001c",
+    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). rw-001d delivered 2026-05-14T13:00Z (commits 001fc1a red baseline + 619a881 impl-green). rw-001e delivered 2026-05-14T13:30Z (commits 6126cc8 red baseline + impl-green pending). 4 of 5 sub-increments delivered; only rw-001c remains (BLOCKED on USER ACTION for Entra tenant + app registration + 2 test users)."
   }
 }
