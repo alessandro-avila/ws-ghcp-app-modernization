@@ -1,0 +1,88 @@
+@model ContosoUniversity.Web.Models.PaginatedList<ContosoUniversity.Web.Domain.Student>
+
+@{
+    ViewData["Title"] = "Students";
+}
+
+<h2>Students</h2>
+
+@if (User.IsInRole("Admin"))
+{
+    <p>
+        <a asp-action="Create" class="btn btn-primary">Create New</a>
+    </p>
+}
+
+<form asp-action="Index" method="get" class="mb-3">
+    <div class="input-group">
+        <input type="text" name="searchString" value="@ViewBag.CurrentFilter" class="form-control" placeholder="Find by name" />
+        <button type="submit" class="btn btn-secondary">Search</button>
+        <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+    </div>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                <a asp-action="Index"
+                   asp-route-sortOrder="@ViewBag.NameSortParm"
+                   asp-route-currentFilter="@ViewBag.CurrentFilter">
+                    Last Name
+                </a>
+            </th>
+            <th>First Name</th>
+            <th>
+                <a asp-action="Index"
+                   asp-route-sortOrder="@ViewBag.DateSortParm"
+                   asp-route-currentFilter="@ViewBag.CurrentFilter">
+                    Enrollment Date
+                </a>
+            </th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@Html.DisplayFor(modelItem => item.FullName)</td>
+                <td>@Html.DisplayFor(modelItem => item.FirstMidName)</td>
+                <td>@Html.DisplayFor(modelItem => item.EnrollmentDate)</td>
+                <td>
+                    <a asp-action="Details" asp-route-id="@item.ID" class="btn btn-info btn-sm">Details</a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <text> | </text>
+                        <a asp-action="Edit" asp-route-id="@item.ID" class="btn btn-warning btn-sm">Edit</a>
+                        <text> | </text>
+                        <a asp-action="Delete" asp-route-id="@item.ID" class="btn btn-danger btn-sm">Delete</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@{
+    var prevDisabled = !Model.HasPreviousPage ? "disabled" : "";
+    var nextDisabled = !Model.HasNextPage ? "disabled" : "";
+}
+
+<nav>
+    <a asp-action="Index"
+       asp-route-sortOrder="@ViewBag.CurrentSort"
+       asp-route-page="@(Model.PageIndex - 1)"
+       asp-route-currentFilter="@ViewBag.CurrentFilter"
+       class="btn btn-secondary @prevDisabled">
+        Previous
+    </a>
+    <a asp-action="Index"
+       asp-route-sortOrder="@ViewBag.CurrentSort"
+       asp-route-page="@(Model.PageIndex + 1)"
+       asp-route-currentFilter="@ViewBag.CurrentFilter"
+       class="btn btn-secondary @nextDisabled">
+        Next
+    </a>
+    <span class="ms-2">Page @Model.PageIndex of @Model.TotalPages</span>
+</nav>

@@ -16,7 +16,12 @@ namespace ContosoUniversity.Web.Domain
         [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}", ApplyFormatInEditMode = true)]
         [Display(Name = "Enrollment Date")]
         [Column(TypeName = "datetime2")]
-        [Range(typeof(DateTime), "1/1/1753", "12/31/9999", ErrorMessage = "Enrollment date must be between 1753 and 9999")]
+        // ISO-8601 format strings keep the [Range] bounds culture-neutral so
+        // that the InputTagHelper's client-validation adapter can parse the
+        // bounds on hosts whose current culture isn't en-US (rw-004 fix:
+        // legacy "1/1/1753" / "12/31/9999" threw FormatException via
+        // DateTimeConverter.ConvertFrom under non-en-US thread culture).
+        [Range(typeof(DateTime), "1753-01-01", "9999-12-31", ErrorMessage = "Enrollment date must be between 1753 and 9999")]
         public DateTime EnrollmentDate { get; set; }
 
         public virtual ICollection<Enrollment> Enrollments { get; set; }
