@@ -46,3 +46,6 @@
 [2026-05-13T03:30:00Z] phase=phase-P step=skill-invoke skill=rewrite-planner result=done message="8 rewrite increments rw-001..rw-008 generated per ADR-004"
 [2026-05-13T03:30:00Z] phase=phase-P step=skill-invoke skill=security-planner result=done message="4 security increments sec-001..sec-004 generated; remaining findings dispositioned to rewrite increments per cross-reference"
 [2026-05-13T03:30:00Z] phase=phase-P step=phase-transition action=ready-for-review result=pending message="phase-P complete (12 increments, ~26 risk-adjusted days) -> awaits human review before phase-2 delivery"
+[2026-05-14T00:00:00Z] phase=phase-P step=human-gate action=human-approval result=approved message="user='Ok approved' authorizes phase-2 delivery; 12 increments accepted; 4 open questions deferred to per-increment resolution"
+[2026-05-14T00:00:00Z] phase=phase-P step=phase-transition action=advance result=done message="phase-P approved -> phase-2 delivery begins; sec-001 selected as first increment"
+[2026-05-14T00:00:00Z] phase=phase-2 step=increment-start increment=sec-001 action=start result=in-progress message="sec-001 (CSRF on NotificationsController.MarkAsRead) entering Track-A pipeline; step=tests-scaffolding"

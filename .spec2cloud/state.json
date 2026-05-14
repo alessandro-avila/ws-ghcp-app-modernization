@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "mode": "brownfield",
-  "currentPhase": "phase-P",
-  "lastUpdated": "2026-05-13T03:30:00Z",
+  "currentPhase": "phase-2",
+  "lastUpdated": "2026-05-14T00:00:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -23,7 +23,8 @@
     "path_selection_outcome": "selected: rewrite + security (option a)",
     "phaseA_assessment_review": "approved",
     "phaseA_assessment_review_outcome": "user='Please proceed' authorizes phase-P planning; approves rewrite.md + security.md + ADRs 002-007",
-    "phaseP_increment_plan_approval": null
+    "phaseP_increment_plan_approval": "approved",
+    "phaseP_increment_plan_approval_outcome": "user='Ok approved' authorizes phase-2 delivery; 12 increments accepted as planned; 4 open questions deferred (will be resolved per-increment)"
   },
   "brownfield": {
     "targetApp": "ContosoUniversity",
@@ -318,5 +319,11 @@
       "Walking skeleton via rw-002 (home page) — sufficient, or include one CRUD operation in rw-001 to prove full pipeline?"
     ]
   },
-  "currentIncrement": null
+  "currentIncrement": {
+    "id": "sec-001",
+    "type": "security",
+    "status": "started",
+    "step": "green-baseline-prep",
+    "startedAt": "2026-05-14T00:00:00Z"
+  }
 }
