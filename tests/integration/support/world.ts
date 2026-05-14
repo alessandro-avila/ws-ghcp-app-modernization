@@ -160,6 +160,79 @@ export class ContosoWorld extends World {
     return this.lastResponse;
   }
 
+  /**
+   * Issue a multipart/form-data POST via curl.exe — used by rw-005 file-upload
+   * scenarios (oversize, disallowed extension, path-traversal). Each `field`
+   * is a regular text part; `fileField` is the binary upload, generated as a
+   * tmp file of `fileField.bytes` zero bytes (RED-baseline content does not
+   * matter — only the size + filename + declared Content-Type matter for
+   * AC#7/AC#8/AC#9, and AC#10 reads back a separate seed file written by
+   * SeedSchoolData).
+   *
+   * Curl's `-F field=@filepath;filename=foo;type=bar` lets us decouple the
+   * on-disk path from the `filename` part-header so a path-traversal payload
+   * (`../../etc/passwd.jpg`) can be advertised in the multipart body without
+   * the local tmp file actually being named that.
+   *
+   * NTLM/SSPI is intentionally NOT attached when targeting the rewrite (same
+   * rationale as `request()`) — the rewrite uses cookie-based auth, and the
+   * active cookie jar is reused so the prior sign-in survives across calls.
+   */
+  async multipartRequest(
+    path: string,
+    fields: Array<{ name: string; value: string }>,
+    fileField: { name: string; bytes: number; fileName: string; contentType: string }
+  ): Promise<HttpResponse> {
+    const url = new URL(path, this.baseUrl).toString();
+
+    // Generate the upload payload as a tmp file of N zero bytes. Buffer.alloc
+    // zero-fills by default; for AC#7 the 5,500,000-byte allocation is well
+    // below the curl/process memory ceiling.
+    const localFileName = `upload-${Date.now()}-${Math.random().toString(36).slice(2)}.bin`;
+    const localFilePath = join(this.tmpDir, localFileName);
+    writeFileSync(localFilePath, Buffer.alloc(fileField.bytes));
+
+    const args: string[] = ['-k', '-s', '-i'];
+    if (this.baseUrl === this.legacyBaseUrl) {
+      args.push('--ntlm', '--user', ':');
+    }
+    args.push(
+      '-c', this.cookieJarPath,
+      '-b', this.cookieJarPath,
+      '-X', 'POST'
+    );
+    // Text fields first — anti-forgery token, course form fields, etc.
+    for (const f of fields) {
+      args.push('-F', `${f.name}=${f.value}`);
+    }
+    // File field with explicit filename + content-type so the server-side
+    // multipart parser sees the path-traversal name + declared Content-Type
+    // verbatim (the on-disk tmp filename is irrelevant to the request).
+    args.push(
+      '-F',
+      `${fileField.name}=@${localFilePath};filename=${fileField.fileName};type=${fileField.contentType}`
+    );
+    args.push(url);
+
+    let stdout: string;
+    try {
+      const result = await execFileAsync('curl.exe', args, {
+        maxBuffer: 50 * 1024 * 1024,
+        windowsHide: true
+      });
+      stdout = result.stdout;
+    } catch (err) {
+      const e = err as NodeJS.ErrnoException & { stdout?: string; stderr?: string };
+      throw new Error(
+        `curl multipart invocation failed for POST ${url}: ${e.message}` +
+          (e.stderr ? `\nstderr: ${e.stderr}` : '')
+      );
+    }
+
+    this.lastResponse = parseCurlResponse(stdout);
+    return this.lastResponse;
+  }
+
   resetCookies(): void {
     if (existsSync(this.cookieJarPath)) {
       try { writeFileSync(this.cookieJarPath, ''); } catch { /* best effort */ }
