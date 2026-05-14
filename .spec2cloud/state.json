@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T14:30:00Z",
+  "lastUpdated": "2026-05-14T15:00:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -340,238 +340,49 @@
       "redBaselineEvidence": "npm run test:integration:legacy -- --tags '@feature-F-002 or @sec-high-003' -> 3 scenarios (1 failed, 2 passed); failure: @red-baseline scenario expected HTTP 413 but got HTTP 500 (anti-forgery exception) - proves the 6 MB body crossed the wire and reached ASP.NET because Web.config IIS limits were 10 MB",
       "testEvidence": "npm run test:integration:legacy -> 7 scenarios (7 passed), 28 steps (28 passed), 0m02.144s",
       "deployment": "none — sec-002 ships as git commit only per increment-plan.md §0.3 (first Azure deploy is in rw-001)"
+    },
+    {
+      "id": "rw-001",
+      "type": "rewrite",
+      "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)",
+      "frd": null,
+      "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"],
+      "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007", "ADR-008"],
+      "subTaskCommits": {
+        "rw-001a": ["68a1dda", "d63799f"],
+        "rw-001b": ["19c20d0", "d32a4e5", "9b5faf6"],
+        "rw-001d": ["001fc1a", "619a881", "e7b1232"],
+        "rw-001e": ["6126cc8", "afaac39", "d0d04d5"],
+        "rw-001c": ["c464361", "2a08af7", "a08e815"]
+      },
+      "deliveredAt": "2026-05-14T14:30:00Z",
+      "testEvidence": "dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> 10/10 passed (3 rw-001a smoke + 2 rw-001d hardening + 2 rw-001e runtime-services + 3 rw-001c Entra-auth-registration); npm run test:integration -> 15/15 scenarios, 69/69 steps; skip-detection scan -> no matches",
+      "deployment": "DEFERRED — first Azure deploy is the next phase-2 step but is BLOCKED on USER ACTION (Azure subscription + azd auth + Entra tenant + app registration + 2 test users with Admin/Reader role claims) per ADR-008 §USER ACTION. Code is deploy-ready: dual-mode wiring works offline (Cucumber 15/15 green without any AzureAd config). When the user provisions the prerequisites, the first azd up will exercise rw-001a..e end-to-end and the dev-stub deletion follow-up bug-fix will be queued.",
+      "notes": "Decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md, delivered in order rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of the external blocker). All ACs #1-#10 closed at code level. ADR-008 captures the dual-mode rationale (config-gated OIDC; dev-stub remains the default when AzureAd:ClientId is empty). Test-harness insight recorded in rw-001c.impl.testHarnessInsight: WebApplicationFactory.WithWebHostBuilder.ConfigureAppConfiguration runs DURING builder.Build(), so config-gated registrations that read builder.Configuration before Build() must be tested by mutating Environment.SetEnvironmentVariable + restoring in try/finally + instantiating a fresh WebApplicationFactory<Program>."
     }
   ],
   "currentIncrement": {
-    "id": "rw-001",
+    "id": "rw-002",
     "type": "rewrite",
-    "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)",
-    "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"],
-    "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007", "ADR-008"],
-    "frd": null,
-    "status": "delivered",
-    "step": "code-complete-awaiting-first-azure-deploy",
-    "startedAt": "2026-05-14T03:00:00Z",
-    "endedAt": "2026-05-14T14:30:00Z",
-    "decompositionDoc": "specs/tasks/rw-001-subtasks.md",
-    "subTasks": [
-      {
-        "id": "rw-001a",
-        "title": "Project scaffold + EF Core 8 baseline + legacy parity (no auth yet)",
-        "status": "delivered",
-        "step": "delivered",
-        "externalBlockers": [],
-        "effortDays": 1.5,
-        "deliveredAt": "2026-05-14T11:15:00Z",
-        "redBaselineEvidence": "npm run test:integration:rewrite -> 2 scenarios (2 failed), 8 steps (2 failed, 6 skipped); failure: AssertionError 'Could not reach http://localhost:7000/' (curl: Failed to connect to localhost port 7000) - proves test harness routes @rewrite traffic to the new endpoint and the new app does not yet exist",
-        "implEvidence": {
-          "build": "dotnet build ContosoUniversity.sln -> Build succeeded, 0 Warning(s), 0 Error(s)",
-          "unitTests": "dotnet test src/ContosoUniversity.Web.UnitTests -> Passed: 3, Failed: 0 (HostStartupSmokeTests: HostBootsAndSchoolContextResolvesFromDi, RootEndpointReturnsRewriteMarker, HealthEndpointReturnsHealthy)",
-          "cucumberRewrite": "npm run test:integration:rewrite -> 2 scenarios (2 passed), 8 steps (8 passed)",
-          "cucumberLegacyRegression": "npm run test:integration:legacy -> 7 scenarios (7 passed), 28 steps (28 passed)",
-          "cucumberFullSuite": "npm run test:integration -> 9 scenarios (9 passed), 36 steps (36 passed)"
-        },
-        "artifacts": {
-          "solution": "ContosoUniversity.sln",
-          "webProject": "src/ContosoUniversity.Web/ContosoUniversity.Web.csproj",
-          "testProject": "src/ContosoUniversity.Web.UnitTests/ContosoUniversity.Web.UnitTests.csproj",
-          "globalJson": "global.json (SDK 8.0.421 pinned)",
-          "domainEntities": ["Course", "Enrollment", "Department", "Person", "Student", "Instructor", "OfficeAssignment", "CourseAssignment", "Notification"],
-          "dbContext": "src/ContosoUniversity.Web/Data/SchoolContext.cs",
-          "migration": "src/ContosoUniversity.Web/Data/Migrations/20260514090905_0001_InitialFromLegacy.cs",
-          "controllers": ["HomeController (default + rewrite marker view)", "HealthController (GET /Health -> 'Healthy')"],
-          "cucumberFeature": "tests/integration/features/rw-001a-foundation.feature",
-          "cucumberStep": "tests/integration/steps/rewrite-foundation.steps.ts",
-          "worldExtension": "tests/integration/support/world.ts (legacyBaseUrl + rewriteBaseUrl + useLegacyBaseUrl/useRewriteBaseUrl)"
-        },
-        "deployment": "none yet — first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
-        "notes": "AC #1 scaffold green, AC #2 EF Core 8 + entities + DbContext, AC #5 0001_InitialFromLegacy migration generated mirroring legacy schema (Notification, Person TPH with Discriminator, Department with RowVersion, Course/Enrollment/OfficeAssignment/CourseAssignment), AC #6 /Health endpoint. Auth-related ACs (#3, #4, #7-#10) deferred to rw-001b/c/d/e."
-      },
-      { "id": "rw-001b", "title": "Cookie auth + ASP.NET Core Identity + dev-stub sign-in (no Entra yet)", "status": "delivered", "externalBlockers": [], "effortDays": 1.0,
-        "redBaselineCommit": "19c20d0",
-        "deliveredCommit": "d32a4e5",
-        "redBaseline": {
-          "cucumberDryRun": "npm run test:integration:dry -> 12 scenarios, 51 steps, all bound (no UNDEFINED)",
-          "cucumberRewriteBeforeImpl": "npm run test:integration:rewrite -> 5 scenarios (5 failed), 23 steps (5 failed, 18 skipped) — all 5 fail at the Background HTTPS-reachability step with 'Could not reach https://localhost:7001/' because the dev server is not running on HTTPS"
-        },
-        "impl": {
-          "package": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.10 added to ContosoUniversity.Web.csproj",
-          "applicationUser": "src/ContosoUniversity.Web/Identity/ApplicationUser.cs (extends IdentityUser)",
-          "schoolContext": "src/ContosoUniversity.Web/Data/SchoolContext.cs upgraded to IdentityDbContext<ApplicationUser>; OnModelCreating now calls base.OnModelCreating before custom mappings",
-          "seedAuthData": "src/ContosoUniversity.Web/Identity/SeedAuthData.cs (idempotent seeding of Admin + Reader roles and admin@contoso.test/reader@contoso.test users)",
-          "accountController": "src/ContosoUniversity.Web/Controllers/AccountController.cs (anonymous; GET /Account/SignIn renders form, POST /Account/SignIn ValidateAntiForgeryToken + PasswordSignInAsync, POST /Account/SignOut)",
-          "dashboardController": "src/ContosoUniversity.Web/Controllers/DashboardController.cs (protected by global FallbackPolicy)",
-          "views": ["src/ContosoUniversity.Web/Views/Account/SignIn.cshtml", "src/ContosoUniversity.Web/Views/Dashboard/Index.cshtml"],
-          "homeAndHealthAllowAnonymous": "added [AllowAnonymous] to HomeController and HealthController so existing rw-001a smoke tests + xUnit RootEndpointReturnsRewriteMarker / HealthEndpointReturnsHealthy stay green under the global FallbackPolicy",
-          "programWiring": [
-            "AddIdentity<ApplicationUser, IdentityRole> with stricter password policy + AddEntityFrameworkStores<SchoolContext>",
-            "ConfigureApplicationCookie: __Host-ContosoUniversity.Auth + HttpOnly + SecurePolicy.Always + SameSite.Strict + SlidingExpiration + ExpireTimeSpan=60min",
-            "AddAuthorization with FallbackPolicy = RequireAuthenticatedUser",
-            "Pipeline order: UseRouting -> UseAuthentication -> UseAuthorization",
-            "Startup: MigrateAsync + (Development-only) SeedAuthData.SeedAsync, wrapped in try/catch so DB outage does not block host bootup"
-          ],
-          "migration": "src/ContosoUniversity.Web/Data/Migrations/20260514092348_0002_AddIdentity.cs (creates AspNetRoles, AspNetUsers, AspNetRoleClaims, AspNetUserClaims, AspNetUserLogins, AspNetUserRoles, AspNetUserTokens)",
-          "harnessFix": "tests/integration/support/world.ts: only attach --ntlm --user : when targeting legacyBaseUrl (passing it against the rewrite endpoint causes antiforgery POSTs to return 400)",
-          "stepFix": "tests/integration/steps/rewrite-auth.steps.ts: 'Then the response Location header should start with' normalizes absolute URLs by stripping scheme+host so the assertion targets path+query"
-        },
-        "evidence": {
-          "dotnetBuild": "dotnet build ContosoUniversity.sln -> 0 warnings, 0 errors",
-          "dotnetTest": "dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> Passed: 3, Failed: 0",
-          "cucumberRewriteAfterImpl": "npm run test:integration:rewrite -> 5 scenarios (5 passed), 23 steps (23 passed)",
-          "cucumberFullSuite": "npm run test:integration -> 12 scenarios (12 passed), 51 steps (51 passed)",
-          "manualSignInDebug": "GET /Account/SignIn -> 200 + .AspNetCore.Antiforgery cookie set; POST /Account/SignIn with valid token+credentials -> 302 + Location: /Dashboard + Set-Cookie: __Host-ContosoUniversity.Auth=...; path=/; secure; samesite=strict; httponly"
-        },
-        "artifacts": {
-          "package": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.10",
-          "newFiles": [
-            "src/ContosoUniversity.Web/Identity/ApplicationUser.cs",
-            "src/ContosoUniversity.Web/Identity/SeedAuthData.cs",
-            "src/ContosoUniversity.Web/Controllers/AccountController.cs",
-            "src/ContosoUniversity.Web/Controllers/DashboardController.cs",
-            "src/ContosoUniversity.Web/Views/Account/SignIn.cshtml",
-            "src/ContosoUniversity.Web/Views/Dashboard/Index.cshtml",
-            "src/ContosoUniversity.Web/Data/Migrations/20260514092348_0002_AddIdentity.cs",
-            "src/ContosoUniversity.Web/Data/Migrations/20260514092348_0002_AddIdentity.Designer.cs"
-          ],
-          "modifiedFiles": [
-            "src/ContosoUniversity.Web/Program.cs",
-            "src/ContosoUniversity.Web/Data/SchoolContext.cs",
-            "src/ContosoUniversity.Web/Data/Migrations/SchoolContextModelSnapshot.cs",
-            "src/ContosoUniversity.Web/Controllers/HomeController.cs",
-            "src/ContosoUniversity.Web/Controllers/HealthController.cs",
-            "src/ContosoUniversity.Web/ContosoUniversity.Web.csproj",
-            "tests/integration/support/world.ts",
-            "tests/integration/steps/rewrite-auth.steps.ts"
-          ]
-        },
-        "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
-        "notes": "ACs #3 (anonymous redirect to sign-in), #4 (authenticated dashboard access), #7 (anti-forgery enforcement on sign-in/out POSTs), #8 (__Host- prefix + HttpOnly + Secure + SameSite=Strict + 60-min sliding expiration), #9 (dev-stub seeded users for local development), and #10 (single backend identity store via SchoolContext) all green. ACs #11-#13 (Entra ID OIDC) deferred to rw-001c. Dev-stub credentials live in SeedAuthData.cs and are deliberately checked in: Development-only env guard plus rw-001c will delete the entire dev-stub sign-in surface."
-      },
-      { "id": "rw-001d", "title": "Security headers + exception handler + structured logging + request timeout", "status": "delivered", "externalBlockers": [], "effortDays": 0.5,
-        "redBaselineCommit": "001fc1a",
-        "deliveredCommit": "619a881",
-        "redBaseline": {
-          "cucumberDryRun": "npm run test:integration:dry -> 15 scenarios, 69 steps, all bound (no UNDEFINED)",
-          "cucumberRewriteBeforeImpl": "npm run test:integration:rewrite -> 8 scenarios (3 failed, 5 passed); the 5 rw-001b scenarios stay green; 3 rw-001d scenarios fail at the first assertion: (1) security-headers: 'Expected response to include header Strict-Transport-Security. Headers seen: [content-length, content-type, date, server]', (2) friendly-404: 'Expected status 404, got 302' (FallbackPolicy redirects unmatched routes to SignIn), (3) masked-500: 'Expected status 500, got 302' (/Diag/Throw does not exist yet)"
-        },
-        "impl": {
-          "securityHeadersMiddleware": "src/ContosoUniversity.Web/Middleware/SecurityHeadersMiddleware.cs (NEW) — uses Response.OnStarting + TryAdd to append Strict-Transport-Security (1y), Content-Security-Policy (default-src 'self'), X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin) on every response",
-          "errorController": "src/ContosoUniversity.Web/Controllers/ErrorController.cs (NEW) — [AllowAnonymous] [Route(\"Error\")]; GET /Error/{statusCode?} -> renders Views/Error/Index.cshtml after capturing the IExceptionHandlerFeature exception (logged but never surfaced)",
-          "errorView": "src/ContosoUniversity.Web/Views/Error/Index.cshtml (NEW) — generic friendly page; 'Sorry, something went wrong.' marker + status-code echo, no internal details",
-          "diagController": "src/ContosoUniversity.Web/Controllers/DiagController.cs (NEW) — [AllowAnonymous] [Route(\"Diag\")] GET /Diag/Throw; throws InvalidOperationException only when IsDevelopment, returns 404 in non-dev",
-          "programWiring": [
-            "Logging.ClearProviders + Logging.AddJsonConsole(IncludeScopes=true) for SEC-MEDIUM-005",
-            "AddRequestTimeouts with DefaultPolicy { Timeout = 30s, TimeoutStatusCode = 504 } for SEC-MEDIUM-006",
-            "Pipeline (BEFORE UseRouting/Auth): UseExceptionHandler('/Error/500') -> UseStatusCodePagesWithReExecute('/Error/{0}') -> UseHsts -> UseMiddleware<SecurityHeadersMiddleware> -> UseRequestTimeouts",
-            "MapFallback returning 404 + AllowAnonymous so unmatched routes fall through StatusCodePages (avoids the FallbackPolicy 302-to-SignIn redirect)"
-          ],
-          "xunitTests": "src/ContosoUniversity.Web.UnitTests/Foundation/HardeningRegistrationTests.cs (NEW) — 2 DI-side tests: DefaultRequestTimeoutPolicyIsThirtySeconds (SEC-MEDIUM-006), JsonConsoleFormatterIsRegistered (SEC-MEDIUM-005, asserts both IncludeScopes=true on JsonConsoleFormatterOptions and ConsoleFormatterNames.Json present in IConsoleFormatter registrations)"
-        },
-        "evidence": {
-          "dotnetBuild": "dotnet build ContosoUniversity.sln -> 0 warnings, 0 errors",
-          "dotnetTest": "dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> Passed: 5, Failed: 0 (3 rw-001a smoke tests + 2 rw-001d hardening tests)",
-          "cucumberRewriteAfterImpl": "npm run test:integration:rewrite -> 8 scenarios (8 passed), 41 steps (41 passed)",
-          "cucumberFullSuite": "npm run test:integration -> 15 scenarios (15 passed), 69 steps (69 passed)",
-          "manualLogFormat": "dotnet run launch produces single-line JSON log records on stdout, e.g. '{\"EventId\":14,\"LogLevel\":\"Information\",\"Category\":\"Microsoft.Hosting.Lifetime\",\"Message\":\"Now listening on: https://localhost:7001\",...,\"Scopes\":[]}'"
-        },
-        "artifacts": {
-          "newFiles": [
-            "src/ContosoUniversity.Web/Middleware/SecurityHeadersMiddleware.cs",
-            "src/ContosoUniversity.Web/Controllers/ErrorController.cs",
-            "src/ContosoUniversity.Web/Controllers/DiagController.cs",
-            "src/ContosoUniversity.Web/Views/Error/Index.cshtml",
-            "src/ContosoUniversity.Web.UnitTests/Foundation/HardeningRegistrationTests.cs",
-            "tests/integration/features/rw-001d-hardening.feature",
-            "tests/integration/steps/rewrite-hardening.steps.ts"
-          ],
-          "modifiedFiles": [
-            "src/ContosoUniversity.Web/Program.cs"
-          ]
-        },
-        "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
-        "notes": "Closes SEC-MEDIUM-001 (friendly error pages, no leaked stack traces), SEC-MEDIUM-002 (5 standard security response headers on every response), SEC-MEDIUM-005 (JSON console formatter for structured log ingestion), SEC-MEDIUM-006 (30-second default request timeout per ADR-006). Note: in Development the friendly error pipeline replaces the framework's DeveloperExceptionPage so the same masking applies in every environment — this is intentional per SEC-MEDIUM-001 (DeveloperExceptionPage explicitly leaks stack traces)." },
-      { "id": "rw-001e", "title": "Data Protection + Key Vault + secrets management + Application Insights", "status": "delivered", "externalBlockers": ["Azure Key Vault provisioned (deferred to deploy)", "Application Insights workspace provisioned (deferred to deploy)"], "effortDays": 0.5,
-        "redBaselineCommit": "6126cc8",
-        "deliveredCommit": "afaac39",
-        "redBaseline": {
-          "xunitBeforeImpl": "dotnet test ContosoUniversity.Web.UnitTests --no-build -> Failed: 2, Passed: 5, Total: 7. Failures: (1) DataProtectionApplicationDiscriminatorMatchesContosoUniversity expected 'ContosoUniversity' but got 'ContosoUniversity.Web' (default WebApplicationBuilder uses the assembly name), (2) ApplicationInsightsTelemetryClientIsRegistered Assert.NotNull() Failure - TelemetryClient unresolved without explicit AddApplicationInsightsTelemetry() call.",
-          "cucumberRegressionBeforeImpl": "Cucumber harness intentionally untouched; rw-001d 15/15 suite remains green pre-impl."
-        },
-        "impl": {
-          "packages": [
-            "Microsoft.ApplicationInsights.AspNetCore 2.22.0 (added in red-baseline commit 6126cc8)",
-            "Azure.Identity 1.13.1",
-            "Azure.Extensions.AspNetCore.Configuration.Secrets 1.3.2 (production AddAzureKeyVault config provider)",
-            "Azure.Extensions.AspNetCore.DataProtection.Blobs 1.3.4 (production PersistKeysToAzureBlobStorage)",
-            "Azure.Extensions.AspNetCore.DataProtection.Keys 1.3.0 (production ProtectKeysWithAzureKeyVault)"
-          ],
-          "userSecrets": "<UserSecretsId>contoso-university-web-rewrite-3a7b1c8e</UserSecretsId> added to ContosoUniversity.Web.csproj so dotnet user-secrets set ... works out of the box for dev secrets.",
-          "configurationKeyVault": "Program.cs (top): if KEYVAULT_URI is set, builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential()) - gated so dev/test runs never reach Azure.",
-          "dataProtection": "Program.cs (services): AddDataProtection().SetApplicationName('ContosoUniversity'); persistence is environment-aware: when DATAPROTECTION_BLOB_URI is set, PersistKeysToAzureBlobStorage; otherwise PersistKeysToFileSystem(%LOCALAPPDATA%/ContosoUniversity/keys); when DATAPROTECTION_KEYVAULT_KEY_URI is set, ProtectKeysWithAzureKeyVault wraps the keys at rest.",
-          "applicationInsights": "Program.cs (services): AddApplicationInsightsTelemetry() - reads APPLICATIONINSIGHTS_CONNECTION_STRING from configuration; in dev the value is empty and telemetry is silently dropped, which is the desired behaviour for hermetic test runs."
-        },
-        "evidence": {
-          "dotnetBuild": "dotnet build ContosoUniversity.sln -> 0 warnings, 0 errors",
-          "dotnetTest": "dotnet test ContosoUniversity.Web.UnitTests --no-build -> Passed: 7, Failed: 0 (3 rw-001a smoke + 2 rw-001d hardening + 2 rw-001e runtime-services)",
-          "cucumberFullSuite": "npm run test:integration -> 15 scenarios (15 passed), 69 steps (69 passed)",
-          "manualLogConfirmation": "dotnet run launch with the new wiring still emits single-line JSON log records on stdout - verified, including 'Now listening on: https://localhost:7001' and 'Hosting environment: Development'."
-        },
-        "artifacts": {
-          "newFiles": [
-            "src/ContosoUniversity.Web.UnitTests/Foundation/RuntimeServicesTests.cs"
-          ],
-          "modifiedFiles": [
-            "src/ContosoUniversity.Web/Program.cs",
-            "src/ContosoUniversity.Web/ContosoUniversity.Web.csproj"
-          ]
-        },
-        "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
-        "notes": "Closes SEC-MEDIUM-004 (secrets management via Azure Key Vault + DefaultAzureCredential, dev fallback to user-secrets) per ADR-007. Telemetry pipeline is now in place for all subsequent increments to emit custom events without further wiring. Production-only paths (KEYVAULT_URI / DATAPROTECTION_BLOB_URI / DATAPROTECTION_KEYVAULT_KEY_URI / APPLICATIONINSIGHTS_CONNECTION_STRING) are documented but not yet exercised - they will be smoke-tested at the first Azure deploy after rw-001c." },
-      { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "delivered", "externalBlockers": ["USER ACTION (deferred to live OIDC smoke test only): Microsoft Entra tenant + app registration + client secret + 2 test users — see ADR-008 §USER ACTION"], "effortDays": 0.5,
-        "adrs": ["ADR-005", "ADR-008"],
-        "redBaselineCommit": "c464361",
-        "deliveredCommit": "2a08af7",
-        "refinement": "specs/adrs/adr-008-rw-001c-dual-mode-entra.md — rw-001c ships as config-gated dual-mode wiring (ADR-005 layered scheme). Microsoft.Identity.Web becomes the default challenge ONLY when AzureAd:ClientId is set; otherwise the rw-001b dev-stub cookie path remains the default. Dev-stub AccountController is NOT deleted in this commit — removal is deferred to a follow-up bug-fix that lands once the user provisions an Entra tenant and the live OIDC smoke test passes.",
-        "redBaseline": {
-          "xunitBeforeImpl": "dotnet test ContosoUniversity.Web.UnitTests --no-build -> Failed: 1, Passed: 9, Total: 10. Failure: OpenIdConnectIsDefaultChallengeWhenAzureAdConfigured expected 'OpenIdConnect' but got 'Identity.Application' (no OIDC scheme registered yet). The 2 other new tests (CookieRemainsDefaultChallengeWhenAzureAdNotConfigured, LegacyMicrosoftIdentityClientIsNotADirectDependency) are regression locks and pass at red baseline by design — they will continue to pass after impl, locking the dual-mode behaviour."
-        },
-        "impl": {
-          "packages": [
-            "Microsoft.Identity.Web 4.9.0 (NOT 3.x — dotnet add package resolved the latest 4.x stable; transitive deps satisfy Azure.Identity 1.17.2 floor)",
-            "Azure.Identity bumped 1.13.1 -> 1.17.2 to satisfy Microsoft.Identity.Web 4.9.0 transitive constraint (NU1605 fix)"
-          ],
-          "programWiring": [
-            "using Microsoft.AspNetCore.Authentication.OpenIdConnect; using Microsoft.Identity.Web; (added at top of Program.cs)",
-            "Config-gated OIDC wiring placed AFTER AddIdentity / ConfigureApplicationCookie / AddAuthorization, BEFORE builder.Build(): if (!string.IsNullOrWhiteSpace(builder.Configuration['AzureAd:ClientId'])) { builder.Services.AddAuthentication(o => { o.DefaultScheme = OpenIdConnectDefaults.AuthenticationScheme; o.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme; }).AddMicrosoftIdentityWebApp(builder.Configuration.GetSection('AzureAd')); }",
-            "Both DefaultScheme AND DefaultChallengeScheme are set explicitly because AddIdentity<> earlier in Program.cs already set DefaultChallengeScheme = IdentityConstants.ApplicationScheme. The single-arg AddAuthentication(scheme) overload only updates DefaultScheme — NOT DefaultChallengeScheme — so [Authorize] would still route to /Account/SignIn (dev-stub) without the explicit options lambda. With the lambda, [Authorize] routes to /signin-oidc when AzureAd:ClientId is set, and falls back to dev-stub cookie when it is empty.",
-            "AddMicrosoftIdentityWebApp does NOT perform any network discovery at registration time; OIDC metadata is fetched lazily on first sign-in, so booting with placeholder values stays hermetic.",
-            "Dev-stub AccountController + Views/Account/SignIn.cshtml + SeedAuthData.cs INTENTIONALLY NOT REMOVED — see ADR-008 §USER ACTION; deletion is queued as a follow-up bug-fix gated on a live OIDC smoke test against a USER-provisioned Entra tenant."
-          ],
-          "xunitTests": "src/ContosoUniversity.Web.UnitTests/Foundation/EntraAuthRegistrationTests.cs (NEW, 3 tests): (1) OpenIdConnectIsDefaultChallengeWhenAzureAdConfigured — sets AzureAd__* env vars (the only configuration source available BEFORE WebApplicationBuilder.Build runs), spins up a fresh WebApplicationFactory<Program>, asserts IAuthenticationSchemeProvider.GetDefaultChallengeSchemeAsync().Name == 'OpenIdConnect'; (2) CookieRemainsDefaultChallengeWhenAzureAdNotConfigured — uses the class-fixture factory (no AzureAd config), asserts default challenge = IdentityConstants.ApplicationScheme; (3) LegacyMicrosoftIdentityClientIsNotADirectDependency — reads ContosoUniversity.Web.csproj from disk, asserts no direct PackageReference to Microsoft.Identity.Client (SEC-LOW-003 lock).",
-          "testHarnessInsight": "WebApplicationFactory's WithWebHostBuilder.ConfigureAppConfiguration callback fires DURING builder.Build(), not BEFORE — so any code in Program.cs that reads builder.Configuration['AzureAd:ClientId'] before Build() will NOT see the in-memory entries that the test injected via WithWebHostBuilder. Process environment variables are loaded by WebApplication.CreateBuilder() and are visible immediately, so tests that depend on early-bound configuration MUST mutate Environment.SetEnvironmentVariable + restore in a try/finally. This pattern is reusable for any future config-gated registration."
-        },
-        "evidence": {
-          "dotnetBuild": "dotnet build ContosoUniversity.sln -> 0 warnings, 0 errors",
-          "dotnetTest": "dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> Passed: 10, Failed: 0 (3 rw-001a smoke + 2 rw-001d hardening + 2 rw-001e runtime-services + 3 rw-001c Entra-auth-registration)",
-          "cucumberFullSuite": "npm run test:integration -> 15 scenarios (15 passed), 69 steps (69 passed) — dev-stub path UNTOUCHED because Cucumber tests do NOT inject AzureAd config and the gate stays inactive",
-          "skipDetectionScan": "grep -rn -E '(test\\.skip|it\\.skip|describe\\.skip|xit\\(|xdescribe\\(|@skip|@pending|@wip|\\.only\\(|\\[Skip\\(|\\[Fact\\(Skip)' across **/*.{cs,ts,js,feature} -> no matches"
-        },
-        "artifacts": {
-          "newFiles": [
-            "src/ContosoUniversity.Web.UnitTests/Foundation/EntraAuthRegistrationTests.cs",
-            "specs/adrs/adr-008-rw-001c-dual-mode-entra.md"
-          ],
-          "modifiedFiles": [
-            "src/ContosoUniversity.Web/Program.cs",
-            "src/ContosoUniversity.Web/ContosoUniversity.Web.csproj",
-            "specs/tasks/rw-001-subtasks.md"
-          ]
-        },
-        "deployment": "none yet — first Azure deploy is the next phase-2 step. BLOCKED on USER ACTION (Azure subscription + azd auth + Entra tenant + app registration + 2 test users) per ADR-008 §USER ACTION.",
-        "notes": "Closes ACs #3 (OIDC default challenge when configured), #10 (no direct Microsoft.Identity.Client dep, SEC-LOW-003 verified). Dual-mode wiring per ADR-005 layered scheme + ADR-008 dual-mode rationale: when AzureAd:ClientId is set, [Authorize] redirects to /signin-oidc (Entra-hosted sign-in); when empty, the rw-001b dev-stub remains the default and the app stays usable offline (hermetic xUnit + Cucumber + fresh checkouts). USER ACTION items: (1) provision Entra tenant + app registration with redirect URIs https://localhost:7001/signin-oidc + /signout-callback-oidc; (2) set AzureAd:Instance/Domain/TenantId/ClientId/ClientSecret via dotnet user-secrets (or Azure Key Vault in production); (3) provision 2 test users with Admin/Reader role claims (group->role mapping or appsettings fallback); (4) run live OIDC redirect smoke test against the tenant; (5) approve dev-stub deletion follow-up bug-fix once the live smoke test passes. Test-harness insight (recorded in impl.testHarnessInsight) is reusable for any future config-gated DI registration."
-      }
+    "title": "HomeController + static pages",
+    "closes": [],
+    "adrs": ["ADR-003", "ADR-004", "ADR-006"],
+    "frd": ["F-005", "F-008"],
+    "status": "in-progress",
+    "step": "step-1-tests",
+    "startedAt": "2026-05-14T15:00:00Z",
+    "endedAt": null,
+    "scope": "Port 3 actions: Index, About, Contact (all [AllowAnonymous] per ADR-006). Port the corresponding 3 Razor views, _Layout.cshtml, _ViewStart.cshtml. Replace BundleConfig with CDN <link>/<script> for Bootstrap 5.3.3 + jQuery 3.7.1. Site.css ships as static file in wwwroot/.",
+    "acceptanceCriteria": [
+      "AC#1: GET / (anonymous) returns 200 with Home page content",
+      "AC#2: GET /Home/About (anonymous) returns 200",
+      "AC#3: GET /Home/Contact (anonymous) returns 200",
+      "AC#4: Visual match (within reason) — Bootstrap 5 minor stylistic differences acceptable",
+      "AC#5: Layout includes navigation links to Students/Courses/Instructors/Departments (legacy URLs since those increments are not yet rewritten)",
+      "AC#6: Regression — rw-001 auth pipeline unaffected (anonymous URLs still anonymous, all other URLs still redirect to login); SEC-MEDIUM-002/003 headers + cookies still set"
     ],
+    "subTasks": [],
     "activeSubTask": null,
-    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). rw-001d delivered 2026-05-14T13:00Z (commits 001fc1a red baseline + 619a881 impl-green). rw-001e delivered 2026-05-14T13:30Z (commits 6126cc8 red baseline + afaac39 impl-green + d0d04d5 backfill). rw-001c delivered 2026-05-14T14:30Z (commits c464361 red baseline + 2a08af7 impl-green; backfill commit pending). 5 of 5 sub-increments delivered; rw-001 parent code-complete. NEXT: first Azure deploy (azd provision + azd deploy) — BLOCKED on USER ACTION (Azure subscription + azd auth + Entra tenant + app registration + 2 test users)."
+    "notes": "rw-002 is small (1 day risk-adjusted effort, 3 actions). No sub-increment decomposition required. Dependency on rw-001 satisfied (foundation code-complete). Deployment for rw-002 — like rw-001 — is deferred until USER ACTION unblocks the first azd up."
   }
 }
