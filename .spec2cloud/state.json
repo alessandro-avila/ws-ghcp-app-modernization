@@ -526,7 +526,15 @@
         },
         "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
         "notes": "Closes SEC-MEDIUM-004 (secrets management via Azure Key Vault + DefaultAzureCredential, dev fallback to user-secrets) per ADR-007. Telemetry pipeline is now in place for all subsequent increments to emit custom events without further wiring. Production-only paths (KEYVAULT_URI / DATAPROTECTION_BLOB_URI / DATAPROTECTION_KEYVAULT_KEY_URI / APPLICATIONINSIGHTS_CONNECTION_STRING) are documented but not yet exercised - they will be smoke-tested at the first Azure deploy after rw-001c." },
-      { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "planned", "externalBlockers": ["USER ACTION: Microsoft Entra tenant + app registration + client secret + 2 test users"], "effortDays": 0.5 }
+      { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "in-progress", "step": "red-baseline-complete",
+        "externalBlockers": ["USER ACTION (deferred to live OIDC smoke test only): Microsoft Entra tenant + app registration + client secret + 2 test users — see ADR-008 §USER ACTION"],
+        "effortDays": 0.5,
+        "adrs": ["ADR-005", "ADR-008"],
+        "refinement": "specs/adrs/adr-008-rw-001c-dual-mode-entra.md — rw-001c ships as config-gated dual-mode wiring (ADR-005 layered scheme). Microsoft.Identity.Web becomes the default challenge ONLY when AzureAd:ClientId is set; otherwise the rw-001b dev-stub cookie path remains the default. Dev-stub AccountController is NOT deleted in this commit — removal is deferred to a follow-up bug-fix that lands once the user provisions an Entra tenant and the live OIDC smoke test passes.",
+        "redBaseline": {
+          "xunitBeforeImpl": "dotnet test ContosoUniversity.Web.UnitTests --no-build -> Failed: 1, Passed: 9, Total: 10. Failure: OpenIdConnectIsDefaultChallengeWhenAzureAdConfigured expected 'OpenIdConnect' but got 'Identity.Application' (no OIDC scheme registered yet). The 2 other new tests (CookieRemainsDefaultChallengeWhenAzureAdNotConfigured, LegacyMicrosoftIdentityClientIsNotADirectDependency) are regression locks and pass at red baseline by design — they will continue to pass after impl, locking the dual-mode behaviour."
+        }
+      }
     ],
     "activeSubTask": "rw-001c",
     "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). rw-001d delivered 2026-05-14T13:00Z (commits 001fc1a red baseline + 619a881 impl-green). rw-001e delivered 2026-05-14T13:30Z (commits 6126cc8 red baseline + impl-green pending). 4 of 5 sub-increments delivered; only rw-001c remains (BLOCKED on USER ACTION for Entra tenant + app registration + 2 test users)."

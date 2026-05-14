@@ -43,16 +43,26 @@
 - **Cucumber tags:** `@rewrite @rw-001b @sec-critical-001 @sec-critical-002 @sec-medium-003`
 
 ### rw-001c — Microsoft Entra ID integration (replaces dev-stub sign-in)
+
+> **Refinement (2026-05-14): see [ADR-008](../adrs/adr-008-rw-001c-dual-mode-entra.md).**
+> rw-001c ships as a **config-gated dual-mode wiring** consistent with ADR-005's layered scheme:
+> Microsoft.Identity.Web is registered when `AzureAd:ClientId` is present (production / Entra-provisioned dev),
+> and the rw-001b ASP.NET Core Identity dev-stub remains the fallback otherwise (offline dev / hermetic test runs).
+> The dev-stub `AccountController` is **NOT deleted** in this commit; deletion is queued as a follow-up
+> bug-fix that lands once the user provisions an Entra tenant and the live OIDC smoke test against it
+> succeeds. AC #4 ("Entra-authenticated → 200") is therefore deferred to that USER ACTION; AC #3 and
+> AC #10 are verified hermetically by xUnit.
+
 - **Scope**
   - Add `Microsoft.Identity.Web` 3.x.
-  - Replace dev-stub `AddCookie(...)` with `AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"))` (cookie scheme stays in place for session, OIDC scheme handles sign-in).
-  - Map `User.Identity?.Name` to `ICurrentUser.Email` for downstream `CreatedBy` backfill (rw-007).
-  - Delete dev-stub `AccountController`; rely on `Microsoft.Identity.Web` sign-in/sign-out endpoints.
-  - Verify legacy `Microsoft.Identity.Client` 4.21.1 dead-dep is NOT pulled in transitively.
-- **Acceptance:** AC #3 (now redirects to Entra), AC #4 (Entra-authenticated → 200), AC #10 (no `Microsoft.Identity.Client` direct dep).
+  - Add a config-gated chain: when `AzureAd:ClientId` is non-empty, `services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme).AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"))` becomes the default challenge scheme; otherwise the dev-stub cookie scheme registered in rw-001b is unchanged.
+  - (Deferred to rw-007) Map `User.Identity?.Name` to `ICurrentUser.Email` for downstream `CreatedBy` backfill — touched only when `ICurrentUser` is introduced.
+  - (Deferred to USER-ACTION follow-up) Delete dev-stub `AccountController`; rely on `Microsoft.Identity.Web` sign-in/sign-out endpoints. Tracked as a follow-up bug-fix triggered by the live Entra smoke test.
+  - Verify legacy `Microsoft.Identity.Client` 4.21.1 dead-dep is NOT pulled in as a direct package reference (transitive pull-through from Microsoft.Identity.Web 3.x at v4.65+ is acceptable and required).
+- **Acceptance:** AC #3 (DI-level proof OIDC is the default challenge — hermetic xUnit; live redirect smoke test deferred to first Azure deploy after USER ACTION), AC #4 (deferred to USER ACTION), AC #10 (verified hermetically by xUnit reading the csproj).
 - **Effort:** 0.5 day
-- **Risk:** Medium — depends on user provisioning Entra app registration (tenant ID + client ID + client secret/cert OR managed identity + redirect URI `https://localhost:7001/signin-oidc`).
-- **External blockers (USER ACTION REQUIRED):**
+- **Risk:** Medium — live verification depends on user provisioning Entra app registration (tenant ID + client ID + client secret/cert OR managed identity + redirect URI `https://localhost:7001/signin-oidc`). Hermetic delivery itself has no external dependency.
+- **External blockers (USER ACTION REQUIRED for live OIDC smoke test only — see ADR-008 §USER ACTION):**
   - Microsoft Entra tenant available
   - App registration created in tenant with redirect URI `https://localhost:7001/signin-oidc` and `https://localhost:7001/signout-callback-oidc`
   - User provides `AzureAd:TenantId`, `AzureAd:ClientId`, `AzureAd:ClientSecret` (via `dotnet user-secrets`)
