@@ -61,9 +61,13 @@ Feature: rw-003 - DepartmentsController CRUD with role-based authorization
 
   @rw-003 @feature-F-004 @red-baseline
   Scenario: Reader-role POST /Departments/Create is forbidden (read-only role)
+    # Reader cannot fetch an anti-forgery token from /Departments/Create — that page
+    # is Admin-only per ADR-006, so the role check returns 403 before antiforgery
+    # validation runs. POSTing without a token still surfaces the role-check 403,
+    # which is the contract this scenario validates: a Reader cannot create a
+    # Department, no matter what payload they send.
     Given I have signed in as the seeded reader user
-    And I have obtained an anti-forgery token from "/Departments/Create"
-    When I POST "/Departments/Create" with the anti-forgery token and form data:
+    When I POST "/Departments/Create" with form data:
       | Name       | rw-003 reader-attempt |
       | Budget     | 100000                |
       | StartDate  | 2026-01-01            |

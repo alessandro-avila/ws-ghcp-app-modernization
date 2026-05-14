@@ -70,6 +70,14 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // Path=/, and no Domain attribute, so a malicious sibling subdomain cannot overwrite the
 // cookie. SameSite=Strict eliminates cross-site request inclusion. SlidingExpiration lets
 // active sessions stay alive without forcing a re-auth at the 60-minute mark.
+//
+// rw-003 (F-004 AC #3): authenticated-but-unauthorized requests must surface as 403
+// Forbidden so role-based contracts (Admin-only writes; Reader read-only) are observable
+// from integration tests and from the browser. The default cookie scheme behavior is to
+// 302-redirect to AccessDeniedPath, which masks the authorization failure as a sign-in
+// loop. Overriding OnRedirectToAccessDenied to write status 403 keeps the 302→sign-in
+// flow for unauthenticated callers (handled by OnRedirectToLogin) while making
+// "authenticated but wrong role" return a clean 403.
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.Cookie.Name = "__Host-ContosoUniversity.Auth";
@@ -81,6 +89,11 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LoginPath = "/Account/SignIn";
     options.LogoutPath = "/Account/SignOut";
     options.AccessDeniedPath = "/Account/SignIn";
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+        return Task.CompletedTask;
+    };
 });
 
 // Default-deny: every endpoint requires an authenticated user unless explicitly
@@ -241,6 +254,10 @@ using (var scope = app.Services.CreateScope())
         if (app.Environment.IsDevelopment())
         {
             await SeedAuthData.SeedAsync(services);
+            // rw-003 (F-004): ensure a deterministic Instructor row exists so the
+            // Departments/Create + Departments/Edit Administrator dropdown is
+            // non-trivial in fresh dev/test databases.
+            await SeedSchoolData.SeedAsync(services);
         }
     }
     catch (Exception ex)

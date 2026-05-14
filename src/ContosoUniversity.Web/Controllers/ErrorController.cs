@@ -24,8 +24,14 @@ public class ErrorController : Controller
         _logger = logger;
     }
 
-    [HttpGet("")]
-    [HttpGet("{statusCode:int?}")]
+    // Accept any HTTP verb. UseStatusCodePagesWithReExecute preserves the
+    // original request method when re-executing the error path, so a failed
+    // POST /Departments/Create (e.g. role-check 403 or anti-forgery 400) is
+    // re-executed as POST /Error/403 or POST /Error/400. Constraining to GET
+    // would cause those re-executions to fall through to MapFallback and
+    // surface as 404 instead of the original status (rw-003).
+    [AcceptVerbs("GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", Route = "")]
+    [AcceptVerbs("GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", Route = "{statusCode:int?}")]
     public IActionResult Index(int? statusCode)
     {
         // Capture the original exception (set by UseExceptionHandler) for structured logging.
