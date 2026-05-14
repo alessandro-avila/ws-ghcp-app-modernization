@@ -19,6 +19,12 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
+    <!-- rw-008 (closes SEC-HIGH-004): HealthChecks integration that exposes
+         /health with a SchoolContext DB-connectivity probe. Replaces the
+         plain-text liveness controller introduced in rw-001a with the
+         standard ASP.NET Core HealthChecks pipeline so downstream tooling
+         (Aspire, App Service liveness probes) gets a structured JSON report. -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.10" />
     <PackageReference Include="Microsoft.Identity.Web" Version="4.9.0" />
     <!-- rw-005 (closes SEC-HIGH-002): cross-platform image decoder used by IUploadValidator
          to perform a magic-byte check on uploaded teaching-material images. Confirms the

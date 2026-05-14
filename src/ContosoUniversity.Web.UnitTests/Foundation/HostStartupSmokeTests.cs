@@ -53,18 +53,26 @@ public class HostStartupSmokeTests : IClassFixture<WebApplicationFactory<Program
         Assert.Contains("Welcome to Contoso University", body);
     }
 
-    [Fact(DisplayName = "GET /Health returns 200 and 'Healthy'")]
-    public async Task HealthEndpointReturnsHealthy()
+    [Fact(DisplayName = "rw-008: GET /health returns 200 with HealthChecks JSON body containing 'database' check")]
+    public async Task HealthEndpointReturnsJsonReportWithDatabaseCheck()
     {
+        // rw-008 (closes SEC-HIGH-004): the rw-001a plain-text HealthController
+        // is replaced by the standard ASP.NET Core HealthChecks middleware
+        // wired up in Program.cs via AddHealthChecks().AddDbContextCheck<SchoolContext>("database").
+        // The endpoint is reachable at both /health and /Health (case-insensitive
+        // routing) and returns a structured JSON document so downstream probes
+        // can distinguish liveness from readiness.
+
         // Arrange
         var client = _factory.CreateClient();
 
         // Act
-        var response = await client.GetAsync("/Health");
+        var response = await client.GetAsync("/health");
         var body = await response.Content.ReadAsStringAsync();
 
         // Assert
         response.EnsureSuccessStatusCode();
-        Assert.Equal("Healthy", body);
+        Assert.Contains("\"status\":\"Healthy\"", body);
+        Assert.Contains("\"name\":\"database\"", body);
     }
 }

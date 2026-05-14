@@ -6,11 +6,14 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Timeouts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Identity.Web;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -97,7 +100,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 // Default-deny: every endpoint requires an authenticated user unless explicitly
-// marked [AllowAnonymous] (Home/Index, Health/Index, Account/SignIn, Account/SignOut).
+// marked [AllowAnonymous] (Home/Index, /health, Account/SignIn, Account/SignOut).
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
@@ -186,6 +189,19 @@ builder.Services.AddScoped<
     ContosoUniversity.Web.Services.NotificationService>();
 builder.Services.AddHostedService<
     ContosoUniversity.Web.Services.NotificationProcessorBackgroundService>();
+
+// rw-008 (closes SEC-HIGH-004 cutover): expose /health via the standard
+// ASP.NET Core HealthChecks pipeline with a SchoolContext DB-connectivity
+// probe registered under the "database" name. Replaces the plain-text
+// HealthController stop-gap from rw-001a so downstream tooling (Aspire,
+// Azure App Service liveness probes, future container orchestrators) gets
+// a structured JSON report that distinguishes liveness from readiness.
+// AddDbContextCheck issues `SchoolContext.Database.CanConnectAsync()` which
+// performs an in-process round-trip to LocalDB / Azure SQL without holding a
+// long-lived connection.
+builder.Services
+    .AddHealthChecks()
+    .AddDbContextCheck<SchoolContext>(name: "database");
 
 // rw-001c (ADR-005 layered scheme + ADR-008 dual-mode rationale): config-gated
 // Microsoft Entra ID OpenID Connect wiring. When AzureAd:ClientId is set, the
@@ -282,6 +298,21 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// rw-008 (closes SEC-HIGH-004): standard /health endpoint backed by the
+// HealthChecks pipeline. AllowAnonymous so the FallbackPolicy default-deny
+// authorization does not 302-redirect liveness probes to /Account/SignIn.
+// The custom JSON writer surfaces individual check names (e.g. "database")
+// so external probes can distinguish "process is up but DB is degraded"
+// from a healthy status. ASP.NET Core endpoint routing is case-insensitive,
+// so this single registration also satisfies legacy callers that targeted
+// the rw-001a /Health (capital H) endpoint -- the standalone HealthController
+// from rw-001a is removed in this same commit.
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    AllowCachingResponses = false,
+    ResponseWriter = WriteHealthCheckJsonResponse
+}).AllowAnonymous();
+
 // rw-001d (SEC-MEDIUM-001): catch-all for routes that no controller matches.
 // Without this, the FallbackPolicy turns "no endpoint" into a 302 redirect to
 // /Account/SignIn, masking the underlying 404. The MapFallback endpoint is
@@ -321,6 +352,42 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// rw-008 (closes SEC-HIGH-004): JSON response writer for /health so the
+// HealthChecks pipeline emits a structured payload that includes the names
+// and statuses of the individual probes (e.g. "database"). The plain-text
+// default writer only writes the overall status, which downstream probes
+// cannot use to distinguish liveness from readiness. Local function so it
+// captures no state and stays AOT-friendly.
+static Task WriteHealthCheckJsonResponse(HttpContext context, HealthReport report)
+{
+    context.Response.ContentType = "application/json; charset=utf-8";
+
+    using var stream = new MemoryStream();
+    using (var writer = new Utf8JsonWriter(stream))
+    {
+        writer.WriteStartObject();
+        writer.WriteString("status", report.Status.ToString());
+        writer.WriteString("totalDurationMs", report.TotalDuration.TotalMilliseconds.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
+        writer.WriteStartArray("checks");
+        foreach (var entry in report.Entries)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("name", entry.Key);
+            writer.WriteString("status", entry.Value.Status.ToString());
+            writer.WriteString("durationMs", entry.Value.Duration.TotalMilliseconds.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
+            if (!string.IsNullOrEmpty(entry.Value.Description))
+            {
+                writer.WriteString("description", entry.Value.Description);
+            }
+            writer.WriteEndObject();
+        }
+        writer.WriteEndArray();
+        writer.WriteEndObject();
+    }
+
+    return context.Response.Body.WriteAsync(stream.ToArray(), 0, (int)stream.Length);
+}
 
 // Expose the implicit Program class so WebApplicationFactory<Program> in
 // ContosoUniversity.Web.UnitTests can boot the app in-process for the DI smoke test.
