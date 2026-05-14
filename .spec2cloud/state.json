@@ -491,6 +491,7 @@
         "notes": "Closes SEC-MEDIUM-001 (friendly error pages, no leaked stack traces), SEC-MEDIUM-002 (5 standard security response headers on every response), SEC-MEDIUM-005 (JSON console formatter for structured log ingestion), SEC-MEDIUM-006 (30-second default request timeout per ADR-006). Note: in Development the friendly error pipeline replaces the framework's DeveloperExceptionPage so the same masking applies in every environment — this is intentional per SEC-MEDIUM-001 (DeveloperExceptionPage explicitly leaks stack traces)." },
       { "id": "rw-001e", "title": "Data Protection + Key Vault + secrets management + Application Insights", "status": "delivered", "externalBlockers": ["Azure Key Vault provisioned (deferred to deploy)", "Application Insights workspace provisioned (deferred to deploy)"], "effortDays": 0.5,
         "redBaselineCommit": "6126cc8",
+        "deliveredCommit": "afaac39",
         "redBaseline": {
           "xunitBeforeImpl": "dotnet test ContosoUniversity.Web.UnitTests --no-build -> Failed: 2, Passed: 5, Total: 7. Failures: (1) DataProtectionApplicationDiscriminatorMatchesContosoUniversity expected 'ContosoUniversity' but got 'ContosoUniversity.Web' (default WebApplicationBuilder uses the assembly name), (2) ApplicationInsightsTelemetryClientIsRegistered Assert.NotNull() Failure - TelemetryClient unresolved without explicit AddApplicationInsightsTelemetry() call.",
           "cucumberRegressionBeforeImpl": "Cucumber harness intentionally untouched; rw-001d 15/15 suite remains green pre-impl."
