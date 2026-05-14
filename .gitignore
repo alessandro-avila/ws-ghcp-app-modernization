@@ -5,3 +5,19 @@
 node_modules/
 tests/integration/.reports/
 *.log
+
+# .NET 8 build outputs (rewrite projects under src/ContosoUniversity.Web*).
+# The legacy .NET Framework project (src/ContosoUniversity/) has its own .gitignore.
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+*.user
+*.suo
+.vs/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages.lock.json

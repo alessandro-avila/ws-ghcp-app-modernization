@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T03:30:00Z",
+  "lastUpdated": "2026-05-14T11:15:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -350,17 +350,48 @@
     "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007"],
     "frd": null,
     "status": "in-progress",
-    "step": "sub-task-decomposition",
+    "step": "sub-increment-execution",
     "startedAt": "2026-05-14T03:00:00Z",
     "decompositionDoc": "specs/tasks/rw-001-subtasks.md",
     "subTasks": [
-      { "id": "rw-001a", "title": "Project scaffold + EF Core 8 baseline + legacy parity (no auth yet)", "status": "in-progress", "step": "start", "externalBlockers": [], "effortDays": 1.5 },
+      {
+        "id": "rw-001a",
+        "title": "Project scaffold + EF Core 8 baseline + legacy parity (no auth yet)",
+        "status": "delivered",
+        "step": "delivered",
+        "externalBlockers": [],
+        "effortDays": 1.5,
+        "deliveredAt": "2026-05-14T11:15:00Z",
+        "redBaselineEvidence": "npm run test:integration:rewrite -> 2 scenarios (2 failed), 8 steps (2 failed, 6 skipped); failure: AssertionError 'Could not reach http://localhost:7000/' (curl: Failed to connect to localhost port 7000) - proves test harness routes @rewrite traffic to the new endpoint and the new app does not yet exist",
+        "implEvidence": {
+          "build": "dotnet build ContosoUniversity.sln -> Build succeeded, 0 Warning(s), 0 Error(s)",
+          "unitTests": "dotnet test src/ContosoUniversity.Web.UnitTests -> Passed: 3, Failed: 0 (HostStartupSmokeTests: HostBootsAndSchoolContextResolvesFromDi, RootEndpointReturnsRewriteMarker, HealthEndpointReturnsHealthy)",
+          "cucumberRewrite": "npm run test:integration:rewrite -> 2 scenarios (2 passed), 8 steps (8 passed)",
+          "cucumberLegacyRegression": "npm run test:integration:legacy -> 7 scenarios (7 passed), 28 steps (28 passed)",
+          "cucumberFullSuite": "npm run test:integration -> 9 scenarios (9 passed), 36 steps (36 passed)"
+        },
+        "artifacts": {
+          "solution": "ContosoUniversity.sln",
+          "webProject": "src/ContosoUniversity.Web/ContosoUniversity.Web.csproj",
+          "testProject": "src/ContosoUniversity.Web.UnitTests/ContosoUniversity.Web.UnitTests.csproj",
+          "globalJson": "global.json (SDK 8.0.421 pinned)",
+          "domainEntities": ["Course", "Enrollment", "Department", "Person", "Student", "Instructor", "OfficeAssignment", "CourseAssignment", "Notification"],
+          "dbContext": "src/ContosoUniversity.Web/Data/SchoolContext.cs",
+          "migration": "src/ContosoUniversity.Web/Data/Migrations/20260514090905_0001_InitialFromLegacy.cs",
+          "controllers": ["HomeController (default + rewrite marker view)", "HealthController (GET /Health -> 'Healthy')"],
+          "cucumberFeature": "tests/integration/features/rw-001a-foundation.feature",
+          "cucumberStep": "tests/integration/steps/rewrite-foundation.steps.ts",
+          "worldExtension": "tests/integration/support/world.ts (legacyBaseUrl + rewriteBaseUrl + useLegacyBaseUrl/useRewriteBaseUrl)"
+        },
+        "deployment": "none yet — first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
+        "notes": "AC #1 scaffold green, AC #2 EF Core 8 + entities + DbContext, AC #5 0001_InitialFromLegacy migration generated mirroring legacy schema (Notification, Person TPH with Discriminator, Department with RowVersion, Course/Enrollment/OfficeAssignment/CourseAssignment), AC #6 /Health endpoint. Auth-related ACs (#3, #4, #7-#10) deferred to rw-001b/c/d/e."
+      },
       { "id": "rw-001b", "title": "Cookie auth + ASP.NET Core Identity + dev-stub sign-in (no Entra yet)", "status": "planned", "externalBlockers": [], "effortDays": 1.0 },
       { "id": "rw-001d", "title": "Security headers + exception handler + structured logging + request timeout", "status": "planned", "externalBlockers": [], "effortDays": 0.5 },
       { "id": "rw-001e", "title": "Data Protection + Key Vault + secrets management + Application Insights", "status": "planned", "externalBlockers": ["Azure Key Vault provisioned (deferred to deploy)", "Application Insights workspace provisioned (deferred to deploy)"], "effortDays": 0.5 },
       { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "planned", "externalBlockers": ["USER ACTION: Microsoft Entra tenant + app registration + client secret + 2 test users"], "effortDays": 0.5 }
     ],
-    "activeSubTask": "rw-001a",
-    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). Each sub-increment goes through Track-A red->green pipeline and ships independently. Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
+    "activeSubTask": "rw-001b",
+    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + impl-green commit). Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
   }
 }
