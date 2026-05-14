@@ -36,7 +36,16 @@ public sealed class SecurityHeadersMiddleware
             // Use TryAdd so a downstream component can override (e.g. a future
             // [Frameable] attribute on a specific view). Idempotent if invoked twice.
             headers.TryAdd("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-            headers.TryAdd("Content-Security-Policy", "default-src 'self'");
+            // rw-002: extended CSP to allow Bootstrap 5.3.3 + jQuery 3.7.1 from the
+            // jsDelivr CDN (rewrite assessment §8). default-src remains 'self' so the
+            // SEC-MEDIUM-002 substring assertion in tests/integration/features/rw-001d-hardening.feature
+            // still passes; script-src and style-src additionally allow https://cdn.jsdelivr.net.
+            headers.TryAdd("Content-Security-Policy",
+                "default-src 'self'; " +
+                "script-src 'self' https://cdn.jsdelivr.net; " +
+                "style-src 'self' https://cdn.jsdelivr.net; " +
+                "img-src 'self' data:; " +
+                "font-src 'self' https://cdn.jsdelivr.net");
             headers.TryAdd("X-Frame-Options", "DENY");
             headers.TryAdd("X-Content-Type-Options", "nosniff");
             headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");

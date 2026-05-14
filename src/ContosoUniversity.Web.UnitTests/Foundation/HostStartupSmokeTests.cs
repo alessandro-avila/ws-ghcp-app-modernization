@@ -35,8 +35,8 @@ public class HostStartupSmokeTests : IClassFixture<WebApplicationFactory<Program
             "SchoolContext must be configured against SQL Server to preserve legacy schema parity (rw-001a AC #4).");
     }
 
-    [Fact(DisplayName = "GET / returns 200 and contains 'ContosoUniversity (rewrite)' marker")]
-    public async Task RootEndpointReturnsRewriteMarker()
+    [Fact(DisplayName = "GET / returns 200 and contains the Home jumbotron marker")]
+    public async Task RootEndpointReturnsHomeJumbotronMarker()
     {
         // Arrange
         var client = _factory.CreateClient();
@@ -45,9 +45,12 @@ public class HostStartupSmokeTests : IClassFixture<WebApplicationFactory<Program
         var response = await client.GetAsync("/");
         var body = await response.Content.ReadAsStringAsync();
 
-        // Assert
+        // Assert: rw-002 ported the legacy Home/Index jumbotron (F-005). The
+        // earlier rw-001a placeholder ("ContosoUniversity (rewrite)") was
+        // intentionally replaced; the smoke test now tracks the new contract
+        // by asserting the legacy welcome string ported verbatim.
         response.EnsureSuccessStatusCode();
-        Assert.Contains("ContosoUniversity (rewrite)", body);
+        Assert.Contains("Welcome to Contoso University", body);
     }
 
     [Fact(DisplayName = "GET /Health returns 200 and 'Healthy'")]

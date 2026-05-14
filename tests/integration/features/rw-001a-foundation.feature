@@ -27,10 +27,10 @@ Feature: rw-001a - ASP.NET Core 8 project foundation boots and serves a placehol
   Background:
     Given the rewrite ContosoUniversity app is reachable at the configured base URL
 
-  Scenario: GET / returns 200 and the placeholder rewrite home page
+  Scenario: GET / returns 200 and the rewrite home page (rw-002 jumbotron supersedes rw-001a placeholder)
     When I GET "/"
     Then the response status should be 200
-    And the response body should contain "ContosoUniversity (rewrite)"
+    And the response body should contain "Welcome to Contoso University"
 
   Scenario: GET /Health returns 200 OK so the app advertises liveness for downstream sub-increments
     When I GET "/Health"
