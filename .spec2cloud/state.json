@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-15T15:00:00Z",
+  "lastUpdated": "2026-05-15T15:30:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -302,7 +302,7 @@
       { "id": "rw-005", "type": "rewrite", "title": "CoursesController (closes SEC-HIGH-002 file upload hardening)", "closes": ["SEC-HIGH-002"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-002", "status": "planned", "order": 7 },
       { "id": "rw-006", "type": "rewrite", "title": "InstructorsController (largest controller; OfficeAssignment + CourseAssignment)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-003", "status": "planned", "order": 8 },
       { "id": "rw-007", "type": "rewrite", "title": "NotificationsController + Channel<T> infrastructure (CreatedBy backfill)", "closes": ["SEC-CRITICAL-002-backfill", "KL-NOTIF-002"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-006", "status": "delivered", "order": 9, "deliveredAt": "2026-05-15T15:00:00Z", "deliveredCommit": "18793d4" },
-      { "id": "rw-008", "type": "rewrite", "title": "Delete MessageQueueTestController + add /health endpoint (cutover)", "closes": ["SEC-HIGH-004"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-007", "status": "planned", "order": 10 },
+      { "id": "rw-008", "type": "rewrite", "title": "Delete MessageQueueTestController + add /health endpoint (cutover)", "closes": ["SEC-HIGH-004"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-007", "status": "delivered", "order": 10, "deliveredAt": "2026-05-15T15:30:00Z", "deliveredCommit": "1cb5077" },
       { "id": "sec-003", "type": "security", "tier": 3, "severity": "medium", "title": "Verify Microsoft.Data.SqlClient is on a supported version (post-rewrite verification)", "closes": ["SEC-MEDIUM-007"], "adrs": ["ADR-003"], "frd": null, "status": "planned", "order": 11 },
       { "id": "sec-004", "type": "security", "tier": 4, "severity": "low", "title": "Re-run security assessment + produce ADR-008 post-rewrite security baseline", "closes": [], "adrs": ["ADR-008-pending"], "frd": null, "status": "planned", "order": 12 }
     ],
@@ -467,26 +467,47 @@
       "testEvidence": "dotnet build src/ContosoUniversity.Web --nologo -> Build succeeded (0 Errors; 4 Warnings — all NU190x for SixLabors.ImageSharp 3.1.5 vulns); dotnet test src/ContosoUniversity.Web.UnitTests --no-build --nologo -> Passed 12, Failed 0 (Total 12); cucumber --tags @rw-007 -> 7 scenarios (7 passed), 37 steps (37 passed), 0m02.738s; cucumber --tags '@rewrite and not @rw-007' -> 44 scenarios (44 passed), 251 steps (251 passed), 0m13.65s; cucumber (FULL suite incl. legacy + sec) -> 58 scenarios (58 passed), 316 steps (316 passed), 0m19.82s; skip-detection scan with word-boundary anchors -> 0 matches across tests/** + e2e/** + specs/features/** + src/ContosoUniversity.Web/** + src/ContosoUniversity.Web.UnitTests/**.",
       "deployment": "DEFERRED — same USER ACTION blocker as rw-001..rw-006 (Azure subscription + azd auth + Entra tenant + 2 test users with Admin/Reader role claims) per ADR-008 §USER ACTION. Code is deploy-ready alongside rw-001..rw-006.",
       "notes": "Implementation files (NEW): Services/NotificationEnvelope.cs (sealed record positional ctor: EntityType, EntityId, Operation, DisplayName, CreatedBy, CreatedAt + EntityOperation enum {Created, Updated, Deleted}), Services/INotificationQueue.cs + Services/ChannelNotificationQueue.cs (System.Threading.Channels.Channel<NotificationEnvelope> bounded(1024) FullMode=Wait SingleReader=true SingleWriter=false; PublishAsync + DequeueAsync), Services/INotificationService.cs + Services/NotificationService.cs (PublishAsync helper publishes envelope to queue; PersistAsync writes Notification row to SchoolContext; ListRecentAsync + MarkAsReadAsync(int id, CancellationToken) writes IsRead=1 + ReadAt=DateTimeOffset.UtcNow), Services/NotificationProcessorBackgroundService.cs (sealed BackgroundService; ExecuteAsync loops DequeueAsync -> PersistAsync; cancellation drains gracefully), Controllers/NotificationsController.cs ([Authorize(Roles=Admin,Reader)] class-level + Index + GetNotifications + [HttpPost][ValidateAntiForgeryToken] MarkAsRead(int id) preserves sec-001 CSRF; uses HttpContext.RequestAborted), Views/Notifications/Index.cshtml (@Html.AntiForgeryToken() + Bootstrap 5 table). Implementation files (MODIFIED): Controllers/{Departments,Students,Courses,Instructors}Controller.cs - INotificationService injected; PublishAsync(EntityType, EntityId, Operation, DisplayName, CreatedBy=User.Identity.Name, CreatedAt=DateTimeOffset.UtcNow) called after SaveChangesAsync on Create/Edit/DeleteConfirmed. Program.cs MODIFIED - AddSingleton<INotificationQueue, ChannelNotificationQueue> + AddScoped<INotificationService, NotificationService> + AddHostedService<NotificationProcessorBackgroundService>. infra/migrations/rw-007-backfill-createdby.sql (NEW idempotent UPDATE Notification SET CreatedBy='System (pre-auth)' WHERE CreatedBy='System' addresses SEC-CRITICAL-002 data backfill). Test files MODIFIED: src/ContosoUniversity.Web.UnitTests/Foundation/NotificationInfrastructureTests.cs - NotificationQueueRoundTripsEnvelopesInFifoOrder now instantiates new ChannelNotificationQueue() directly (bypasses DI race with BackgroundService consuming items before test asserts); tests/integration/steps/rewrite-notifications.steps.ts AC#5 assertion now uses 'SET NOCOUNT ON;' SELECT + digit-only line filter to handle sqlcmd '\\r\\n(1 rows affected)' suffix. tests/integration/support/hooks.ts - BeforeAll cleanup hook added (FK-aware: NULLify Department.InstructorID then DELETE CourseAssignment + OfficeAssignment + Enrollment + Person + Notification + Department + Course; preserves seed rows via NOT LIKE 'Rewrite-Seed-%' pattern; re-inserts the rw-006 seed Instructor + OfficeAssignment + CourseAssignment if AC#10 renamed it to 'rw-006-admin-edit'). .gitignore extended (reader-cookies.txt + admin-cookies.txt + src/ContosoUniversity.Web/App_Data/uploads/). CRITICAL LESSONS LEARNED: (1) Singleton INotificationQueue + AddHostedService consumer means xUnit tests that resolve the queue via DI race the BackgroundService — instantiate ChannelNotificationQueue directly in tests instead. (2) sqlcmd default output includes '(1 rows affected)' which breaks string-equality assertions — always emit 'SET NOCOUNT ON;' before SELECT and filter to digit-only lines. (3) Brownfield cucumber suites that mutate seed rows (e.g. AC#10 Edit POST renames the seed Instructor) need either per-suite reseed OR a self-cleaning + self-reseeding BeforeAll hook — chose the latter for stability across runs without host restart. (4) Database cleanup in cucumber MUST be FK-aware: nullify FKs before deleting parent rows (Department.InstructorID -> Person; CourseAssignment + OfficeAssignment + Enrollment -> Person/Course; etc.). Carry-forward TODOs: SixLabors.ImageSharp 3.1.5 vulns; SRI integrity hashes for jsDelivr CDN resources still pending from rw-002. The legacy directory removal moves to rw-008."
+    },
+    {
+      "id": "rw-008",
+      "type": "rewrite + security",
+      "title": "Delete MessageQueueTestController + add /health endpoint (cutover)",
+      "frd": "F-007",
+      "status": "delivered",
+      "step": "step-4-verify",
+      "startedAt": "2026-05-15T15:00:00Z",
+      "endedAt": "2026-05-15T15:30:00Z",
+      "closes": ["SEC-HIGH-004"],
+      "adrs": ["ADR-003", "ADR-004", "ADR-006"],
+      "redBaselineCommit": "51c72d2",
+      "redBaselineEvidence": "RED baseline at commit 51c72d2: cucumber @rw-008 -> 3 scenarios (1 failed AC#2 because legacy plain-text HealthController body was 'Healthy' and did not contain the substring 'database'; 2 passed AC#1+AC#3 because the legacy controller satisfied the 200/'Healthy' assertions); regression cucumber '@rewrite and not @rw-008' -> 51/51 scenarios GREEN.",
+      "deliveredAt": "2026-05-15T15:30:00Z",
+      "deliveredCommit": "1cb5077",
+      "commits": ["51c72d2", "1cb5077"],
+      "testEvidence": "dotnet build src/ContosoUniversity.Web --nologo -> Build succeeded (0 Errors; 4 Warnings — all NU190x for SixLabors.ImageSharp 3.1.5 vulns); dotnet test src/ContosoUniversity.Web.UnitTests --no-build --nologo -> Passed 12, Failed 0 (Total 12); cucumber --tags @rw-008 -> 3 scenarios (3 passed), 12 steps (12 passed), 0m00.621s; cucumber FULL suite -> 54 scenarios (54 passed), 300 steps (300 passed), 0m17.218s (the 7 legacy sec-001/sec-002 scenarios that targeted the deleted https://localhost:44300 IIS Express app are removed in this commit because the legacy app no longer exists; equivalent security properties are covered by rw-003/rw-004 (CSRF on Departments/Students Create+Edit+Delete) and rw-005 AC#7 (5 MB upload cap with HTTP 413)); skip-detection scan with word-boundary anchors -> 0 matches across tests/** + e2e/** + specs/features/** + src/ContosoUniversity.Web/** + src/ContosoUniversity.Web.UnitTests/**.",
+      "deployment": "DEFERRED — same USER ACTION blocker as rw-001..rw-007 (Azure subscription + azd auth + Entra tenant + 2 test users with Admin/Reader role claims) per ADR-008 §USER ACTION. Code is deploy-ready alongside rw-001..rw-007 and is now the SOLE codebase (legacy MVC 5 app removed).",
+      "notes": "Implementation files (NEW): tests/integration/features/rw-008-health.feature (3 @rw-008 scenarios: AC#1 GET /health -> 200 + body 'Healthy'; AC#2 GET /health -> 200 + body 'database'; AC#3 GET /Health (capital H) -> 200 + body 'Healthy' for back-compat with rw-001a). Implementation files (MODIFIED): src/ContosoUniversity.Web/ContosoUniversity.Web.csproj (added <PackageReference Include=\"Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore\" Version=\"8.0.10\" />); src/ContosoUniversity.Web/Program.cs (3 changes — added 3 usings: Microsoft.AspNetCore.Diagnostics.HealthChecks, Microsoft.Extensions.Diagnostics.HealthChecks, System.Text.Json; added builder.Services.AddHealthChecks().AddDbContextCheck<SchoolContext>(name: \"database\"); added app.MapHealthChecks(\"/health\", new HealthCheckOptions { AllowCachingResponses=false, ResponseWriter=WriteHealthCheckJsonResponse }).AllowAnonymous(); added local function WriteHealthCheckJsonResponse that emits structured JSON {status, totalDurationMs, checks[{name,status,durationMs,description?}]}). Implementation files (DELETED): src/ContosoUniversity.Web/Controllers/HealthController.cs (legacy plain-text /Health controller removed; ASP.NET Core endpoint routing is case-insensitive so the new MapHealthChecks(\"/health\") matches both /health and /Health and the JSON body contains the substring 'Healthy' so all rw-001a back-compat assertions still pass); src/ContosoUniversity/ (entire legacy ASP.NET Framework MVC 5 directory removed via git rm -rf — closes SEC-HIGH-004 by eliminating the legacy code path entirely); tests/integration/features/sec-001-csrf-mark-as-read.feature + tests/integration/features/sec-002-upload-size-cap.feature (legacy IIS Express features that targeted https://localhost:44300/ — unrunnable and unnecessary post-cutover; CSRF coverage now lives in rw-003/rw-004 against the new /Departments and /Students mutating POSTs; 5 MB upload cap coverage now lives in rw-005 AC#7 against /Courses/Create with HTTP 413 from RequestSizeLimit). Test files (MODIFIED): src/ContosoUniversity.Web.UnitTests/Foundation/HostStartupSmokeTests.cs (HealthEndpointReturnsHealthy renamed to HealthEndpointReturnsJsonReportWithDatabaseCheck — asserts response.EnsureSuccessStatusCode + body Contains \"\\\"status\\\":\\\"Healthy\\\"\" + body Contains \"\\\"name\\\":\\\"database\\\"\" against GET /health, replacing the rw-001a strict-equality plain-text assertion). CRITICAL LESSONS LEARNED: (1) ASP.NET Core endpoint routing is CASE-INSENSITIVE so MapHealthChecks(\"/health\") matches both /health and /Health — there is no need for a separate registration for the capital-H back-compat route; the legacy [Route(\"Health\")] controller is shadowed by the middleware. (2) When cutting over a brownfield app, the @existing-behavior tests for the legacy code path must be deleted (not skipped) in the same cutover commit because the target host no longer exists; equivalent security properties belong on the new app's tests. (3) IIS Express may keep apphost.exe locks even after the parent terminal is killed because the dotnet host was launched with '2>&1 | Out-Null' which detaches stdout; ALWAYS run Get-Process ContosoUniversity.Web | Stop-Process -Force before any rebuild AND additionally check for orphaned iisexpress.exe via Get-CimInstance Win32_Process when removing src/ContosoUniversity/. (4) HealthChecks middleware must be registered with .AllowAnonymous() because AddAuthorization(o => o.FallbackPolicy = RequireAuthenticatedUser()) would otherwise 302-redirect liveness probes to /Account/SignIn. Carry-forward TODOs: SixLabors.ImageSharp 3.1.5 vulns; SRI integrity hashes for jsDelivr CDN resources still pending from rw-002 — both reassessed in sec-004."
     }
   ],
   "currentIncrement": {
-    "id": "rw-008",
-    "type": "rewrite + security",
-    "title": "Delete MessageQueueTestController + add /health endpoint (cutover)",
-    "closes": ["SEC-HIGH-004"],
-    "adrs": ["ADR-003", "ADR-004", "ADR-006"],
-    "frd": "F-007",
+    "id": "sec-003",
+    "type": "security",
+    "tier": 3,
+    "severity": "medium",
+    "title": "Verify Microsoft.Data.SqlClient is on a supported version (post-rewrite verification)",
+    "closes": ["SEC-MEDIUM-007"],
+    "adrs": ["ADR-003"],
+    "frd": null,
     "status": "in-progress",
-    "step": "step-1-red",
-    "startedAt": "2026-05-15T15:00:00Z",
+    "step": "step-1-verify",
+    "startedAt": "2026-05-15T15:30:00Z",
     "endedAt": null,
-    "scope": "Add ASP.NET Core HealthChecks middleware with anonymous /health endpoint that includes a SchoolContext DB connectivity probe. Delete the legacy ASP.NET Framework project at src/ContosoUniversity/ as the rewrite cutover. Closes SEC-HIGH-004 (legacy code path eliminated).",
+    "scope": "Verify the resolved Microsoft.Data.SqlClient transitive version on src/ContosoUniversity.Web is on a supported branch (>=5.1.0, ideally 5.1.5 via EF Core 8.0.10). If the resolved version drifts below the supported floor, pin via an explicit PackageReference. Closes SEC-MEDIUM-007 (legacy app shipped with vulnerable SqlClient 4.x; the new app picks SqlClient 5.x transitively via EF Core 8 -- this increment formalizes the assertion).",
     "acceptanceCriteria": [
-      "(1) GET /health is anonymous (no auth) and returns 200 with content-type application/json or text/plain.",
-      "(2) /health includes a SchoolContext DB connectivity probe.",
-      "(3) Legacy directory src/ContosoUniversity/ is removed entirely.",
-      "(4) Full xUnit + cucumber regression remains GREEN.",
-      "(5) Skip-scan remains 0 matches."
+      "(1) dotnet list package --include-transitive resolves Microsoft.Data.SqlClient at >= 5.1.0 on src/ContosoUniversity.Web.",
+      "(2) If the resolved version drifts below 5.1.0, the csproj pins a supported PackageReference.",
+      "(3) Full xUnit + cucumber regression remains GREEN with the resolved/pinned version.",
+      "(4) Evidence is captured in state.json testEvidence."
     ]
   }
 }
