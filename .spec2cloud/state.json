@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T15:00:00Z",
+  "lastUpdated": "2026-05-14T16:30:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -296,7 +296,7 @@
       { "id": "sec-001", "type": "security", "tier": 2, "severity": "high", "title": "Add ValidateAntiForgeryToken to NotificationsController.MarkAsRead", "closes": ["SEC-HIGH-001"], "adrs": ["ADR-006"], "frd": "F-006", "status": "delivered", "order": 1, "deliveredAt": "2026-05-14T02:00:00Z", "commits": ["4215b42", "5d07860"] },
       { "id": "sec-002", "type": "security", "tier": 2, "severity": "high", "title": "Align upload size cap to 5 MB across Web.config and CoursesController", "closes": ["SEC-HIGH-003"], "adrs": [], "frd": "F-002", "status": "delivered", "order": 2, "deliveredAt": "2026-05-14T03:00:00Z", "commits": ["416a918", "07b4a0d"] },
       { "id": "rw-001", "type": "rewrite", "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)", "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"], "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007", "ADR-008"], "frd": null, "status": "delivered", "order": 3, "deliveredAt": "2026-05-14T14:30:00Z", "subTaskCommits": { "rw-001a": ["68a1dda", "d63799f"], "rw-001b": ["19c20d0", "d32a4e5", "9b5faf6"], "rw-001d": ["001fc1a", "619a881", "e7b1232"], "rw-001e": ["6126cc8", "afaac39", "d0d04d5"], "rw-001c": ["c464361", "2a08af7"] }, "deploymentBlockedOn": ["USER ACTION: Azure subscription + azd auth", "USER ACTION: Microsoft Entra tenant + app registration + 2 test users (only required to validate Entra path; dev-stub path deploys without Entra)"] },
-      { "id": "rw-002", "type": "rewrite", "title": "HomeController + static pages", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": ["F-005", "F-008"], "status": "planned", "order": 4 },
+      { "id": "rw-002", "type": "rewrite", "title": "HomeController + static pages", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": ["F-005", "F-008"], "status": "in-progress", "order": 4 },
       { "id": "rw-003", "type": "rewrite", "title": "DepartmentsController", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-004", "status": "planned", "order": 5 },
       { "id": "rw-004", "type": "rewrite", "title": "StudentsController (sort/filter/paging template)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-001", "status": "planned", "order": 6 },
       { "id": "rw-005", "type": "rewrite", "title": "CoursesController (closes SEC-HIGH-002 file upload hardening)", "closes": ["SEC-HIGH-002"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-002", "status": "planned", "order": 7 },
@@ -383,6 +383,8 @@
     ],
     "subTasks": [],
     "activeSubTask": null,
-    "notes": "rw-002 is small (1 day risk-adjusted effort, 3 actions). No sub-increment decomposition required. Dependency on rw-001 satisfied (foundation code-complete). Deployment for rw-002 — like rw-001 — is deferred until USER ACTION unblocks the first azd up."
+    "redBaselineCommit": "e8794e4",
+    "redBaselineEvidence": "npm run test:integration:rewrite -> 12 scenarios, 4 failed (rw-002 red), 8 passed (rw-001a + rw-001b + rw-001d regression); failures are: AC#1 GET / body lacks 'Welcome to Contoso University' (still rw-001a placeholder), AC#2 GET /Home/About returns 404 (action not ported), AC#3 GET /Home/Contact returns 404 (action not ported), AC#5 GET / body lacks Students/Courses/Instructors/Departments nav links. dotnet test src/ContosoUniversity.Web.UnitTests -> 10/10 passed. Skip-detection scan: clean (no test.skip / [Fact(Skip)] / .only / pending / wip across tests/integration/** and src/ContosoUniversity.Web.UnitTests/**).",
+    "notes": "rw-002 is small (1 day risk-adjusted effort, 3 actions). No sub-increment decomposition required. Dependency on rw-001 satisfied (foundation code-complete). Deployment for rw-002 — like rw-001 — is deferred until USER ACTION unblocks the first azd up. Red baseline at commit e8794e4 (1 file: tests/integration/features/rw-002-home-static-pages.feature, 4 scenarios, all @red-baseline @rewrite @rw-002 @feature-F-005 @feature-F-008). Step 2 (contracts) is trivial/empty for static pages — proceed straight to Step 3 (implementation)."
   }
 }
