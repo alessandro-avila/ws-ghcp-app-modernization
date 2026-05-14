@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-15T13:30:00Z",
+  "lastUpdated": "2026-05-15T14:00:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -456,9 +456,9 @@
     "closes": ["KL-NOTIF-002", "SEC-CRITICAL-002 backfill"],
     "adrs": ["ADR-003", "ADR-004", "ADR-006"],
     "frd": "F-007",
-    "status": "not-started",
-    "step": "step-1-tests",
-    "startedAt": null,
+    "status": "in-progress",
+    "step": "step-3-impl",
+    "startedAt": "2026-05-15T13:50:00Z",
     "endedAt": null,
     "scope": "Replace the in-process MessageQueue infrastructure with System.Threading.Channels.Channel<NotificationEnvelope> + a hosted BackgroundService consumer that calls INotificationService.PersistAsync(...). Add NotificationsController (Index, MarkAsRead, partial render). MarkAsRead actually marks read (legacy KL-NOTIF-002 was no-op). Wire INotificationService.PublishAsync calls into existing rewritten controllers (Departments, Students, Courses, Instructors) for CUD actions. Add one-time data-migration SQL script that updates legacy rows where CreatedBy='System' to CreatedBy='System (pre-auth)' per SEC-CRITICAL-002 remediation. Auth: Index requires authenticated user; MarkAsRead requires CSRF token (preserved from sec-001); user only sees own notifications + global notifications addressed to their role.",
     "acceptanceCriteria": [
@@ -471,8 +471,8 @@
     ],
     "subTasks": [],
     "activeSubTask": null,
-    "redBaselineCommit": null,
-    "redBaselineEvidence": null,
+    "redBaselineCommit": "c01403b",
+    "redBaselineEvidence": "RED baseline at commit c01403b: cucumber @rw-007 -> 7 scenarios (6 failed AC#1/AC#2/AC#3/AC#4/AC#5/AC#7 with HTTP 404 because NotificationsController did not exist yet, 1 passed AC#6 because Departments/Create from rw-003 satisfies the precondition); xUnit dotnet build src/ContosoUniversity.Web.UnitTests -> 3 CS0246 errors (INotificationQueue, NotificationEnvelope, NotificationProcessorBackgroundService not found); regression cucumber '@rewrite and not @rw-007' -> 44/44 scenarios (251/251 steps) GREEN after FK-aware DB cleanup pass that NULLified Department.InstructorID then deleted CourseAssignment + OfficeAssignment + Enrollment + Person rows where LastName LIKE 'rw-%' AND LastName NOT LIKE 'Rewrite-Seed-%' (preserving SeedSchoolData fixtures); xUnit baseline (before adding RED test) -> 10/10 passed; skip-scan -> 0 matches in test code.",
     "notes": "rw-007 is the Notification subsystem rewrite + the SEC-CRITICAL-002 data backfill. Replaces in-process MessageQueue (NOT MSMQ at runtime per B1 finding) with System.Threading.Channels. KL-NOTIF-002: legacy MarkAsRead controller action was empty body (no-op) - new implementation writes IsRead=true + ReadAt=DateTimeOffset.UtcNow. SEC-CRITICAL-002 data backfill: legacy code hardcoded CreatedBy='System' for rows created without an authenticated user (which was all of them); new app uses User.Identity?.Name; one-time script updates pre-existing rows. Test strategy: cucumber e2e for full notification lifecycle (raise -> poll -> display -> mark read), cucumber e2e for CSRF on MarkAsRead, xUnit for Channel<T> backpressure handling, xUnit for BackgroundService graceful shutdown drains channel, integration for data-migration script idempotency, regression for prior rw-001..rw-006. Carry-forward from rw-006: ISO-8601 [Range(typeof(DateTime),...)] lesson - verify all Notification model bounds. Carry-forward from rw-005: SixLabors.ImageSharp 3.1.5 vulns. Carry-forward from rw-002: SRI hashes pending. Carry-forward from rw-004: AC#7 pollution gap."
   }
 }

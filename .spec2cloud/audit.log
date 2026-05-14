@@ -114,3 +114,4 @@
 2026-05-15T11:50:00Z [state] rw-006: red-baseline -- record commit 5ae2ae8; advance step-1-tests -> step-3-impl
 
 2026-05-15T13:30:00Z [increment] rw-006 delivered (commit f859ba9); cucumber 10/10 + 34/34 regression GREEN; xUnit 10/10; deployment deferred per ADR-008 USER ACTION; advance currentIncrement -> rw-007 (NotificationsController + Channel<T>)
+2026-05-15T14:00:00Z [rw-007] red-baseline -- commit c01403b: 6/7 cucumber FAIL (HTTP 404 expected; AC#6 passes via Departments/Create from rw-003), 3 xUnit compile errors expected (INotificationQueue/NotificationEnvelope/NotificationProcessorBackgroundService not found); regression 44/44 GREEN after FK-aware DB cleanup; advance step-1-tests -> step-3-impl
