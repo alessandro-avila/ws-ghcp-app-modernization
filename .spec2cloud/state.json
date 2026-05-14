@@ -1,8 +1,8 @@
 {
   "version": "1.0",
   "mode": "brownfield",
-  "currentPhase": "phase-A",
-  "lastUpdated": "2026-05-13T03:10:00Z",
+  "currentPhase": "phase-P",
+  "lastUpdated": "2026-05-13T03:30:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -21,7 +21,9 @@
     "testability_gate_outcome": "Track A (full green baseline) for all 8 FRDs",
     "path_selection": "approved",
     "path_selection_outcome": "selected: rewrite + security (option a)",
-    "phaseA_assessment_review": null
+    "phaseA_assessment_review": "approved",
+    "phaseA_assessment_review_outcome": "user='Please proceed' authorizes phase-P planning; approves rewrite.md + security.md + ADRs 002-007",
+    "phaseP_increment_plan_approval": null
   },
   "brownfield": {
     "targetApp": "ContosoUniversity",
@@ -281,6 +283,40 @@
       }
     ]
   },
-  "incrementPlan": null,
+  "incrementPlan": {
+    "path": "specs/increment-plan.md",
+    "generatedAt": "2026-05-13T03:30:00Z",
+    "generatedBy": ["rewrite-planner", "security-planner"],
+    "track": "A",
+    "selectedPaths": ["rewrite", "security"],
+    "totalIncrements": 12,
+    "riskAdjustedDays": 26,
+    "increments": [
+      { "id": "sec-001", "type": "security", "tier": 2, "severity": "high", "title": "Add ValidateAntiForgeryToken to NotificationsController.MarkAsRead", "closes": ["SEC-HIGH-001"], "adrs": ["ADR-006"], "frd": "F-007", "status": "planned", "order": 1 },
+      { "id": "sec-002", "type": "security", "tier": 2, "severity": "high", "title": "Align upload size cap to 5 MB across Web.config and CoursesController", "closes": ["SEC-HIGH-003"], "adrs": [], "frd": "F-002", "status": "planned", "order": 2 },
+      { "id": "rw-001", "type": "rewrite", "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)", "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"], "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007"], "frd": null, "status": "planned", "order": 3 },
+      { "id": "rw-002", "type": "rewrite", "title": "HomeController + static pages", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": ["F-005", "F-008"], "status": "planned", "order": 4 },
+      { "id": "rw-003", "type": "rewrite", "title": "DepartmentsController", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-004", "status": "planned", "order": 5 },
+      { "id": "rw-004", "type": "rewrite", "title": "StudentsController (sort/filter/paging template)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-001", "status": "planned", "order": 6 },
+      { "id": "rw-005", "type": "rewrite", "title": "CoursesController (closes SEC-HIGH-002 file upload hardening)", "closes": ["SEC-HIGH-002"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-002", "status": "planned", "order": 7 },
+      { "id": "rw-006", "type": "rewrite", "title": "InstructorsController (largest controller; OfficeAssignment + CourseAssignment)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-003", "status": "planned", "order": 8 },
+      { "id": "rw-007", "type": "rewrite", "title": "NotificationsController + Channel<T> infrastructure (CreatedBy backfill)", "closes": ["SEC-CRITICAL-002-backfill"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-006", "status": "planned", "order": 9 },
+      { "id": "rw-008", "type": "rewrite", "title": "Delete MessageQueueTestController + add /health endpoint (cutover)", "closes": ["SEC-HIGH-004"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-007", "status": "planned", "order": 10 },
+      { "id": "sec-003", "type": "security", "tier": 3, "severity": "medium", "title": "Verify Microsoft.Data.SqlClient is on a supported version (post-rewrite verification)", "closes": ["SEC-MEDIUM-007"], "adrs": ["ADR-003"], "frd": null, "status": "planned", "order": 11 },
+      { "id": "sec-004", "type": "security", "tier": 4, "severity": "low", "title": "Re-run security assessment + produce ADR-008 post-rewrite security baseline", "closes": [], "adrs": ["ADR-008-pending"], "frd": null, "status": "planned", "order": 12 }
+    ],
+    "findingsCoverage": {
+      "critical": { "total": 2, "closedByPlan": 2 },
+      "high": { "total": 4, "closedByPlan": 4 },
+      "medium": { "total": 7, "closedByPlan": 7 },
+      "low": { "total": 4, "closedByPlan": 3, "informationalNotIncrement": ["SEC-LOW-004"] }
+    },
+    "openQuestionsForHumanGate": [
+      "Tier-1 inside rw-001: acceptable to ship sec-001/sec-002 surgical Tier-2 fixes before Tier-1 architectural fix in rw-001?",
+      "rw-007 data migration irreversibility (CreatedBy backfill is one-way) — author inline ADR before commit?",
+      "~26 risk-adjusted days for single dev with AI pair: acceptable or further decomposition?",
+      "Walking skeleton via rw-002 (home page) — sufficient, or include one CRUD operation in rw-001 to prove full pipeline?"
+    ]
+  },
   "currentIncrement": null
 }

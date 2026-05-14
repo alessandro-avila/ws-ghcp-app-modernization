@@ -41,3 +41,8 @@
 [2026-05-13T03:07:00Z] phase=phase-A step=cross-ref-fixup action=update result=done message="security.md and rewrite.md ADR-004 descriptive label updated from 'strangler-fig strategy' to 'migration pattern - per-controller big-bang within spec2cloud increments' to match the actual ADR-004 decision"
 [2026-05-13T03:08:00Z] phase=phase-A step=state-update action=write result=done message="state.json updated: lastUpdated, brownfield.assessments (rewrite + security), adrs.records (ADR-002..ADR-007), adrs.nextNumber=8, humanGates.phaseA_assessment_review=null"
 [2026-05-13T03:10:00Z] phase=phase-A step=phase-transition action=ready-for-review result=pending message="phase-A complete (rewrite.md + security.md + 6 ADRs) -> awaits human review before phase-P planning"
+[2026-05-13T03:30:00Z] phase=phase-A step=human-gate action=human-approval result=approved message="user='Please proceed' authorizes phase-P planning"
+[2026-05-13T03:30:00Z] phase=phase-A step=phase-transition action=advance result=done message="phase-A approved -> phase-P planning begins"
+[2026-05-13T03:30:00Z] phase=phase-P step=skill-invoke skill=rewrite-planner result=done message="8 rewrite increments rw-001..rw-008 generated per ADR-004"
+[2026-05-13T03:30:00Z] phase=phase-P step=skill-invoke skill=security-planner result=done message="4 security increments sec-001..sec-004 generated; remaining findings dispositioned to rewrite increments per cross-reference"
+[2026-05-13T03:30:00Z] phase=phase-P step=phase-transition action=ready-for-review result=pending message="phase-P complete (12 increments, ~26 risk-adjusted days) -> awaits human review before phase-2 delivery"
