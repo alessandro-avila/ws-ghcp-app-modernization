@@ -1,0 +1,97 @@
+@{
+    ViewData["Title"] = "Notifications";
+}
+
+@*
+    rw-007 (F-006): notifications dashboard. Renders an empty table that the
+    inline script populates by calling /Notifications/GetNotifications. Each
+    row exposes a "Mark as read" button which POSTs to /Notifications/MarkAsRead
+    using the auto-injected anti-forgery token (sec-001 carryover). The
+    @Html.AntiForgeryToken() helper below also satisfies the cucumber
+    "obtained an anti-forgery token from /Notifications" precondition used by
+    AC#5 — the token-acquisition helper scrapes the rendered hidden input.
+*@
+
+<h2>Notifications</h2>
+
+@Html.AntiForgeryToken()
+
+<p class="text-muted">
+    Recent system notifications produced by entity CRUD actions across
+    Students, Courses, Instructors, and Departments. Read state is persisted
+    in SQL.
+</p>
+
+<table id="notifications-table" class="table table-striped">
+    <thead>
+        <tr>
+            <th>Id</th>
+            <th>Type</th>
+            <th>Operation</th>
+            <th>Message</th>
+            <th>Created</th>
+            <th>By</th>
+            <th>Read</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td colspan="8" class="text-muted">Loading…</td>
+        </tr>
+    </tbody>
+</table>
+
+<script>
+    (function () {
+        var table = document.getElementById('notifications-table');
+        var tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+
+        function render(rows) {
+            var tbody = table.querySelector('tbody');
+            tbody.innerHTML = '';
+            if (!rows.length) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-muted">No notifications yet.</td></tr>';
+                return;
+            }
+            rows.forEach(function (n) {
+                var tr = document.createElement('tr');
+                if (n.isRead) tr.classList.add('text-muted');
+                tr.innerHTML =
+                    '<td>' + n.id + '</td>' +
+                    '<td>' + n.entityType + '</td>' +
+                    '<td>' + n.operation + '</td>' +
+                    '<td>' + (n.message || '') + '</td>' +
+                    '<td>' + new Date(n.createdAt).toLocaleString() + '</td>' +
+                    '<td>' + (n.createdBy || '') + '</td>' +
+                    '<td>' + (n.isRead ? 'yes' : 'no') + '</td>' +
+                    '<td>' + (n.isRead
+                        ? ''
+                        : '<button type="button" class="btn btn-sm btn-outline-primary" data-id="' + n.id + '">Mark read</button>') +
+                    '</td>';
+                tbody.appendChild(tr);
+            });
+            tbody.querySelectorAll('button[data-id]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var id = btn.getAttribute('data-id');
+                    var body = new URLSearchParams();
+                    body.append('__RequestVerificationToken', tokenInput.value);
+                    body.append('id', id);
+                    fetch('/Notifications/MarkAsRead', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    }).then(refresh);
+                });
+            });
+        }
+
+        function refresh() {
+            fetch('/Notifications/GetNotifications', { headers: { 'Accept': 'application/json' } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) { render(data.notifications || []); });
+        }
+
+        refresh();
+    })();
+</script>

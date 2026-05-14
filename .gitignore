@@ -6,6 +6,13 @@ node_modules/
 tests/integration/.reports/
 *.log
 
+# Per-run cucumber/curl artifacts
+reader-cookies.txt
+admin-cookies.txt
+
+# Web App_Data uploads (runtime, not source) — seed image is rehydrated on host start.
+src/ContosoUniversity.Web/App_Data/uploads/
+
 # .NET 8 build outputs (rewrite projects under src/ContosoUniversity.Web*).
 # The legacy .NET Framework project (src/ContosoUniversity/) has its own .gitignore.
 [Bb]in/

@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using ContosoUniversity.Web.Data;
 using ContosoUniversity.Web.Domain;
 using ContosoUniversity.Web.Models;
+using ContosoUniversity.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -36,9 +37,11 @@ namespace ContosoUniversity.Web.Controllers;
 ///     students. The rewrite uses <c>.SingleOrDefaultAsync()</c> -> HTTP 404
 ///     to honor the documented intent of US-F-001-002.
 ///
-/// Notifications: legacy <c>SendEntityNotification</c> calls are intentionally
-/// NOT ported in rw-004. NotificationService is not yet wired in the rewrite
-/// Web project; surfacing it is queued for rw-007 (notifications subsystem).
+/// Notifications (rw-007 / SEC-CRITICAL-002): every successful CUD action
+/// publishes a <see cref="NotificationEnvelope"/> via
+/// <see cref="INotificationService.PublishAsync"/>; <c>CreatedBy</c> captures
+/// <c>User.Identity?.Name</c> so the audit row attributes the change to the
+/// authenticated principal instead of the legacy hardcoded "System" sentinel.
 ///
 /// Concurrency (RowVersion): the Student entity does NOT have a
 /// <c>[Timestamp]</c> field in the legacy schema, so optimistic-concurrency
@@ -52,10 +55,12 @@ public class StudentsController : Controller
     private const int PageSize = 3;
 
     private readonly SchoolContext _db;
+    private readonly INotificationService _notifications;
 
-    public StudentsController(SchoolContext db)
+    public StudentsController(SchoolContext db, INotificationService notifications)
     {
         _db = db;
+        _notifications = notifications;
     }
 
     // GET: Students
@@ -144,6 +149,12 @@ public class StudentsController : Controller
         {
             _db.Students.Add(student);
             await _db.SaveChangesAsync();
+            await _notifications.PublishAsync(
+                entityType: nameof(Student),
+                entityId: student.ID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                displayName: $"{student.FirstMidName} {student.LastName}",
+                operation: EntityOperation.CREATE,
+                createdBy: User.Identity?.Name);
             return RedirectToAction(nameof(Index));
         }
 
@@ -180,6 +191,12 @@ public class StudentsController : Controller
         {
             _db.Entry(student).State = EntityState.Modified;
             await _db.SaveChangesAsync();
+            await _notifications.PublishAsync(
+                entityType: nameof(Student),
+                entityId: student.ID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                displayName: $"{student.FirstMidName} {student.LastName}",
+                operation: EntityOperation.UPDATE,
+                createdBy: User.Identity?.Name);
             return RedirectToAction(nameof(Index));
         }
 
@@ -220,6 +237,12 @@ public class StudentsController : Controller
             {
                 _db.Students.Remove(student);
                 await _db.SaveChangesAsync();
+                await _notifications.PublishAsync(
+                    entityType: nameof(Student),
+                    entityId: student.ID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    displayName: $"{student.FirstMidName} {student.LastName}",
+                    operation: EntityOperation.DELETE,
+                    createdBy: User.Identity?.Name);
             }
             return RedirectToAction(nameof(Index));
         }

@@ -34,7 +34,14 @@ public class NotificationInfrastructureTests : IClassFixture<WebApplicationFacto
     [Fact(DisplayName = "INotificationQueue round-trips envelopes in FIFO order (rw-007)")]
     public async Task NotificationQueueRoundTripsEnvelopesInFifoOrder()
     {
-        var queue = _factory.Services.GetRequiredService<INotificationQueue>();
+        // NOTE: We instantiate ChannelNotificationQueue directly rather than resolving
+        // INotificationQueue from _factory.Services because the running
+        // NotificationProcessorBackgroundService consumes from the DI-registered
+        // queue and would race the test for every envelope. Both behaviours
+        // are still covered: the FIFO contract is verified here, and the
+        // hosted-service registration is verified by the sibling test below
+        // (the registered ChannelNotificationQueue is the same concrete type).
+        var queue = new ChannelNotificationQueue();
         var first = new NotificationEnvelope(
             EntityType: "Department",
             EntityId: "1",

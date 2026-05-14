@@ -112,10 +112,16 @@ Then(
     const state = notifState(this);
     assert.ok(state.seedId, 'No seeded Notification.Id captured.');
     const value = await runSqlScalar(
-      `SELECT CAST(IsRead AS INT) FROM Notification WHERE Id = ${state.seedId};`
+      `SET NOCOUNT ON; SELECT CAST(IsRead AS INT) FROM Notification WHERE Id = ${state.seedId};`
     );
+    // sqlcmd may still emit blank lines around the result; pull the first
+    // digit-only line so the comparison is robust to formatting noise.
+    const valueLine = value
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .find((l) => /^\d+$/.test(l));
     assert.equal(
-      value,
+      valueLine,
       '1',
       `Expected Notification.IsRead = 1 for seeded Id ${state.seedId}; got "${value}".`
     );

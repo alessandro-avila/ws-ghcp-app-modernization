@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using ContosoUniversity.Web.Data;
 using ContosoUniversity.Web.Domain;
+using ContosoUniversity.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -27,19 +28,25 @@ namespace ContosoUniversity.Web.Controllers;
 ///     the posted entity against the database row and surfaces per-property
 ///     "Current value" model errors (parity with the legacy controller).
 ///
-/// Notifications: legacy <c>SendEntityNotification</c> calls are intentionally
-/// NOT ported in rw-003. NotificationService is not yet wired in the rewrite
-/// Web project; surfacing it is queued for a later increment that ports the
-/// notifications subsystem (see specs/frd-notification-system.md).
+/// Notifications (rw-007 / SEC-CRITICAL-002): every successful CUD action
+/// publishes a <see cref="NotificationEnvelope"/> via
+/// <see cref="INotificationService.PublishAsync"/>. The envelope crosses an
+/// in-memory bounded queue and is persisted by the
+/// <see cref="NotificationProcessorBackgroundService"/>; <c>CreatedBy</c>
+/// captures <c>User.Identity?.Name</c> so the audit row attributes the change
+/// to the authenticated principal instead of the legacy hardcoded "System"
+/// sentinel.
 /// </summary>
 [Authorize(Roles = "Admin,Reader")]
 public class DepartmentsController : Controller
 {
     private readonly SchoolContext _db;
+    private readonly INotificationService _notifications;
 
-    public DepartmentsController(SchoolContext db)
+    public DepartmentsController(SchoolContext db, INotificationService notifications)
     {
         _db = db;
+        _notifications = notifications;
     }
 
     // GET: Departments
@@ -92,6 +99,12 @@ public class DepartmentsController : Controller
         {
             _db.Departments.Add(department);
             await _db.SaveChangesAsync();
+            await _notifications.PublishAsync(
+                entityType: nameof(Department),
+                entityId: department.DepartmentID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                displayName: department.Name,
+                operation: EntityOperation.CREATE,
+                createdBy: User.Identity?.Name);
             return RedirectToAction(nameof(Index));
         }
 
@@ -136,6 +149,12 @@ public class DepartmentsController : Controller
                 _db.Entry(department).OriginalValues["RowVersion"] = department.RowVersion;
                 _db.Entry(department).State = EntityState.Modified;
                 await _db.SaveChangesAsync();
+                await _notifications.PublishAsync(
+                    entityType: nameof(Department),
+                    entityId: department.DepartmentID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    displayName: department.Name,
+                    operation: EntityOperation.UPDATE,
+                    createdBy: User.Identity?.Name);
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateConcurrencyException ex)
@@ -238,6 +257,12 @@ public class DepartmentsController : Controller
             {
                 _db.Entry(department).State = EntityState.Deleted;
                 await _db.SaveChangesAsync();
+                await _notifications.PublishAsync(
+                    entityType: nameof(Department),
+                    entityId: department.DepartmentID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    displayName: department.Name,
+                    operation: EntityOperation.DELETE,
+                    createdBy: User.Identity?.Name);
             }
             return RedirectToAction(nameof(Index));
         }

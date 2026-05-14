@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using ContosoUniversity.Web.Data;
 using ContosoUniversity.Web.Domain;
+using ContosoUniversity.Web.Services;
 using ContosoUniversity.Web.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -34,18 +35,26 @@ namespace ContosoUniversity.Web.Controllers;
 ///     reader-role POSTs return 403 Forbidden BEFORE the antiforgery filter (per ADR-006);
 ///     this is intentional and tested by the reader-create scenarios.
 ///
-/// Notifications: legacy <c>NotificationService</c> calls intentionally NOT ported
-/// in rw-006 (defer to rw-007 with the NotificationsController + Channel&lt;T&gt; infra).
+/// Notifications (rw-007 / SEC-CRITICAL-002): every successful CUD action
+/// publishes a <see cref="NotificationEnvelope"/> via
+/// <see cref="INotificationService.PublishAsync"/>; <c>CreatedBy</c> captures
+/// <c>User.Identity?.Name</c> so the audit row attributes the change to the
+/// authenticated principal instead of the legacy hardcoded "System" sentinel.
 /// </summary>
 [Authorize(Roles = "Admin,Reader")]
 public class InstructorsController : Controller
 {
     private readonly SchoolContext _db;
+    private readonly INotificationService _notifications;
     private readonly ILogger<InstructorsController> _logger;
 
-    public InstructorsController(SchoolContext db, ILogger<InstructorsController> logger)
+    public InstructorsController(
+        SchoolContext db,
+        INotificationService notifications,
+        ILogger<InstructorsController> logger)
     {
         _db = db;
+        _notifications = notifications;
         _logger = logger;
     }
 
@@ -164,6 +173,13 @@ public class InstructorsController : Controller
         {
             _db.Instructors.Add(instructor);
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await _notifications.PublishAsync(
+                entityType: nameof(Instructor),
+                entityId: instructor.ID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                displayName: $"{instructor.FirstMidName} {instructor.LastName}",
+                operation: EntityOperation.CREATE,
+                createdBy: User.Identity?.Name,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
             return RedirectToAction(nameof(Index));
         }
 
@@ -237,6 +253,13 @@ public class InstructorsController : Controller
                 UpdateInstructorCourses(selectedCourses, instructorToUpdate);
 
                 await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                await _notifications.PublishAsync(
+                    entityType: nameof(Instructor),
+                    entityId: instructorToUpdate.ID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    displayName: $"{instructorToUpdate.FirstMidName} {instructorToUpdate.LastName}",
+                    operation: EntityOperation.UPDATE,
+                    createdBy: User.Identity?.Name,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
                 return RedirectToAction(nameof(Index));
             }
             catch (DbUpdateException ex)
@@ -303,6 +326,13 @@ public class InstructorsController : Controller
 
         _db.Instructors.Remove(instructor);
         await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        await _notifications.PublishAsync(
+            entityType: nameof(Instructor),
+            entityId: instructor.ID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            displayName: $"{instructor.FirstMidName} {instructor.LastName}",
+            operation: EntityOperation.DELETE,
+            createdBy: User.Identity?.Name,
+            cancellationToken: cancellationToken).ConfigureAwait(false);
         return RedirectToAction(nameof(Index));
     }
 

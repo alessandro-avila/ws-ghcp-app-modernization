@@ -167,6 +167,26 @@ builder.Services.AddApplicationInsightsTelemetry();
 builder.Services.AddSingleton<ContosoUniversity.Web.Services.IUploadValidator,
     ContosoUniversity.Web.Services.DefaultUploadValidator>();
 
+// rw-007 (F-006 + SEC-CRITICAL-002 + KL-NOTIF-002): notification subsystem.
+//   * INotificationQueue: Singleton — the bounded Channel<T> is the
+//     application-wide producer/consumer pipe; sharing one instance is the
+//     point.
+//   * INotificationService: Scoped — depends on the Scoped SchoolContext.
+//     The background service resolves a fresh service per dequeued envelope
+//     via IServiceScopeFactory.
+//   * NotificationProcessorBackgroundService: hosted service that drains the
+//     queue for the lifetime of the app. Replaces the legacy in-process MSMQ
+//     shim that drained on demand inside the controller's GetNotifications
+//     action and silently swallowed persistence errors.
+builder.Services.AddSingleton<
+    ContosoUniversity.Web.Services.INotificationQueue,
+    ContosoUniversity.Web.Services.ChannelNotificationQueue>();
+builder.Services.AddScoped<
+    ContosoUniversity.Web.Services.INotificationService,
+    ContosoUniversity.Web.Services.NotificationService>();
+builder.Services.AddHostedService<
+    ContosoUniversity.Web.Services.NotificationProcessorBackgroundService>();
+
 // rw-001c (ADR-005 layered scheme + ADR-008 dual-mode rationale): config-gated
 // Microsoft Entra ID OpenID Connect wiring. When AzureAd:ClientId is set, the
 // OIDC handler becomes the default *challenge* scheme so [Authorize] redirects

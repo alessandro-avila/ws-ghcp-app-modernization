@@ -39,8 +39,11 @@ namespace ContosoUniversity.Web.Controllers;
 ///     reader-role POSTs return 403 Forbidden BEFORE the antiforgery filter (per ADR-006);
 ///     this is intentional and tested by the reader-create scenarios.
 ///
-/// Notifications: legacy <c>NotificationService</c> calls intentionally NOT ported
-/// in rw-005 (defer to rw-007 with the NotificationsController + Channel&lt;T&gt; infra).
+/// Notifications (rw-007 / SEC-CRITICAL-002): every successful CUD action
+/// publishes a <see cref="NotificationEnvelope"/> via
+/// <see cref="INotificationService.PublishAsync"/>; <c>CreatedBy</c> captures
+/// <c>User.Identity?.Name</c> so the audit row attributes the change to the
+/// authenticated principal instead of the legacy hardcoded "System" sentinel.
 /// </summary>
 [Authorize(Roles = "Admin,Reader")]
 public class CoursesController : Controller
@@ -59,17 +62,20 @@ public class CoursesController : Controller
     private readonly SchoolContext _db;
     private readonly IUploadValidator _uploadValidator;
     private readonly IWebHostEnvironment _env;
+    private readonly INotificationService _notifications;
     private readonly ILogger<CoursesController> _logger;
 
     public CoursesController(
         SchoolContext db,
         IUploadValidator uploadValidator,
         IWebHostEnvironment env,
+        INotificationService notifications,
         ILogger<CoursesController> logger)
     {
         _db = db;
         _uploadValidator = uploadValidator;
         _env = env;
+        _notifications = notifications;
         _logger = logger;
     }
 
@@ -172,6 +178,13 @@ public class CoursesController : Controller
 
             _db.Courses.Add(course);
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await _notifications.PublishAsync(
+                entityType: nameof(Course),
+                entityId: course.CourseID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                displayName: course.Title,
+                operation: EntityOperation.CREATE,
+                createdBy: User.Identity?.Name,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
             return RedirectToAction(nameof(Index));
         }
 
@@ -245,6 +258,13 @@ public class CoursesController : Controller
 
             _db.Entry(course).State = EntityState.Modified;
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await _notifications.PublishAsync(
+                entityType: nameof(Course),
+                entityId: course.CourseID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                displayName: course.Title,
+                operation: EntityOperation.UPDATE,
+                createdBy: User.Identity?.Name,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
             return RedirectToAction(nameof(Index));
         }
 
@@ -286,6 +306,13 @@ public class CoursesController : Controller
         {
             _db.Courses.Remove(course);
             await _db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await _notifications.PublishAsync(
+                entityType: nameof(Course),
+                entityId: course.CourseID.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                displayName: course.Title,
+                operation: EntityOperation.DELETE,
+                createdBy: User.Identity?.Name,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
         return RedirectToAction(nameof(Index));
     }
