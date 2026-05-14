@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T18:30:00Z",
+  "lastUpdated": "2026-05-14T19:00:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -298,7 +298,7 @@
       { "id": "rw-001", "type": "rewrite", "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)", "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"], "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007", "ADR-008"], "frd": null, "status": "delivered", "order": 3, "deliveredAt": "2026-05-14T14:30:00Z", "subTaskCommits": { "rw-001a": ["68a1dda", "d63799f"], "rw-001b": ["19c20d0", "d32a4e5", "9b5faf6"], "rw-001d": ["001fc1a", "619a881", "e7b1232"], "rw-001e": ["6126cc8", "afaac39", "d0d04d5"], "rw-001c": ["c464361", "2a08af7"] }, "deploymentBlockedOn": ["USER ACTION: Azure subscription + azd auth", "USER ACTION: Microsoft Entra tenant + app registration + 2 test users (only required to validate Entra path; dev-stub path deploys without Entra)"] },
       { "id": "rw-002", "type": "rewrite", "title": "HomeController + static pages", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": ["F-005", "F-008"], "status": "delivered", "order": 4, "deliveredAt": "2026-05-14T17:00:00Z", "deliveredCommit": "9c18b3d" },
       { "id": "rw-003", "type": "rewrite", "title": "DepartmentsController", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-004", "status": "delivered", "order": 5, "deliveredAt": "2026-05-14T18:30:00Z", "deliveredCommit": "349cf76" },
-      { "id": "rw-004", "type": "rewrite", "title": "StudentsController (sort/filter/paging template)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-001", "status": "planned", "order": 6 },
+      { "id": "rw-004", "type": "rewrite", "title": "StudentsController (sort/filter/paging template)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-001", "status": "in-progress", "order": 6 },
       { "id": "rw-005", "type": "rewrite", "title": "CoursesController (closes SEC-HIGH-002 file upload hardening)", "closes": ["SEC-HIGH-002"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-002", "status": "planned", "order": 7 },
       { "id": "rw-006", "type": "rewrite", "title": "InstructorsController (largest controller; OfficeAssignment + CourseAssignment)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-003", "status": "planned", "order": 8 },
       { "id": "rw-007", "type": "rewrite", "title": "NotificationsController + Channel<T> infrastructure (CreatedBy backfill)", "closes": ["SEC-CRITICAL-002-backfill"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-006", "status": "planned", "order": 9 },
@@ -400,9 +400,9 @@
     "closes": [],
     "adrs": ["ADR-003", "ADR-004", "ADR-006"],
     "frd": "F-001",
-    "status": "planned",
-    "step": "step-1-tests",
-    "startedAt": null,
+    "status": "in-progress",
+    "step": "step-3-impl",
+    "startedAt": "2026-05-14T18:45:00Z",
     "endedAt": null,
     "scope": "Port StudentsController (Index with sort/filter/paging, Details, Create, Edit, Delete) under [Authorize(Roles=Admin,Reader)] per ADR-006 (Reader for read-only Index/Details, Admin for Create/Edit/Delete). Establish the sort/filter/paging template that subsequent CRUD controllers (Courses, Instructors) will reuse. PaginatedList<T> helper to be ported from legacy.",
     "acceptanceCriteria": [
@@ -416,8 +416,8 @@
     ],
     "subTasks": [],
     "activeSubTask": null,
-    "redBaselineCommit": null,
-    "redBaselineEvidence": null,
-    "notes": "rw-004 follows rw-003 as the next authenticated CRUD increment per increment-plan.md (order=6). Deployment deferred per ADR-008 same as rw-001/rw-002/rw-003. Dependency on rw-001 (auth pipeline), rw-002 (Home/Layout nav), and rw-003 (DepartmentsController template — copy/paste pattern for [Authorize(Roles=...)] + tag-helper views + RowVersion-style concurrency where applicable). Note: Student entity does not have RowVersion in legacy schema — concurrency-token handling not required here. PaginatedList<T> needs to be ported (legacy file: src/ContosoUniversity/PaginatedList.cs) — first reuse opportunity for the rewrite project."
+    "redBaselineCommit": "21f90b2",
+    "redBaselineEvidence": "npm run cucumber --tags @rw-004 -> 7 scenarios (7 failed) all 404 because StudentsController is not yet implemented (anon GET, Reader GET, Reader GET sortOrder=name_desc, Reader GET searchString=Alpha, Reader POST Create, Admin GET Create, Admin POST Create); npm run cucumber --tags '@rewrite and not @rw-004' -> 17/17 scenarios pass (rw-001a + rw-001b + rw-001d + rw-002 + rw-003 unaffected); dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> 10/10 passed; skip-detection scan -> no matches across tests/integration/** + src/ContosoUniversity.Web/** + src/ContosoUniversity.Web.UnitTests/**; SeedSchoolData.SeedAsync now seeds 2 deterministic Students (Alpha + Zulu, FirstMidName=Reader-Sortable) for the sort/filter/paging cucumber scenarios — verified at host startup via EF Core MERGE INSERT in dev environment.",
+    "notes": "rw-004 follows rw-003 as the next authenticated CRUD increment per increment-plan.md (order=6). Deployment deferred per ADR-008 same as rw-001/rw-002/rw-003. Dependency on rw-001 (auth pipeline), rw-002 (Home/Layout nav), and rw-003 (DepartmentsController template — copy/paste pattern for [Authorize(Roles=...)] + tag-helper views + RowVersion-style concurrency where applicable). Note: Student entity does not have RowVersion in legacy schema — concurrency-token handling not required here. PaginatedList<T> needs to be ported (legacy file: src/ContosoUniversity/PaginatedList.cs) — first reuse opportunity for the rewrite project. Step-2 (contracts) skipped: Student entity is already on SchoolContext as a DbSet from rw-001, no new contract surface beyond input view models which are co-located with the controller in step-3. PageSize DECISION: rewrite honors FRD §NFR-F-001-001 intent (3) NOT legacy code value (10) — documented in StudentsController XML doc + impl commit message. KL-F-001-001 FIX: rewrite uses .SingleOrDefaultAsync() -> HTTP 404 NOT legacy .Single() -> HTTP 500 — documented in StudentsController.Details XML doc + impl commit message. NotificationService calls intentionally NOT ported in rw-004 (defer to rw-007 with NotificationsController + Channel<T> infrastructure)."
   }
 }
