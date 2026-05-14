@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T19:30:00Z",
+  "lastUpdated": "2026-05-14T19:50:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -416,27 +416,27 @@
     "closes": ["SEC-HIGH-002"],
     "adrs": ["ADR-003", "ADR-004", "ADR-006"],
     "frd": "F-002",
-    "status": "planned",
-    "step": "step-1-tests",
-    "startedAt": null,
+    "status": "in-progress",
+    "step": "step-3-impl",
+    "startedAt": "2026-05-14T19:50:00Z",
     "endedAt": null,
-    "scope": "Port CoursesController (Index with sort/filter/paging following the rw-004 template, Details, Create, Edit, Delete) under [Authorize(Roles=Admin,Reader)] per ADR-006. Closes SEC-HIGH-002 by hardening the teaching-materials file-upload path: enforce 5 MB cap (aligned with sec-002 Web.config legacy cap), validate Content-Type allowlist (image/*, application/pdf, etc. per F-002 spec), validate file extension allowlist, reject path-traversal attempts, store under content-addressable filename (no user-controlled filename), and persist via DbContext (replacing legacy Uploads/ filesystem write). Reader can GET Index/Details + download materials; Admin can Create/Edit/Delete courses + upload/replace/delete materials.",
+    "scope": "Port CoursesController (Index, Details, Create GET/POST, Edit GET/POST, Delete GET/POST + a new authenticated Image GET action that streams the teaching-material image as a download) under [Authorize(Roles=Admin,Reader)] per ADR-006. Closes SEC-HIGH-002 (shallow file-upload validation) across four vectors: (a) framework-level 5 MB request-size cap via [RequestSizeLimit(5_242_880)] (matches sec-002 Web.config IIS cap), (b) extension allowlist (.jpg/.jpeg/.png/.gif/.bmp), (c) magic-byte check via SixLabors.ImageSharp.Image.Identify so a renamed .aspx-as-.jpg is rejected, (d) sanitized server-generated filename pattern course_{CourseID}_{Guid}{ext} so user-controlled filenames cannot path-traverse. Files stored at a non-web-rooted path (App_Data/uploads/teaching-materials/) and served back via the [Authorize(Roles=Admin,Reader)] Image action with Content-Disposition: attachment to defeat inline-render attacks (e.g. SVG-with-script). Course entity has a SINGLE optional TeachingMaterialImagePath field (string) — the upload happens as part of Create/Edit, NOT via a separate Materials sub-resource (legacy parity).",
     "acceptanceCriteria": [
-      "AC#1: Anonymous GET /Courses redirects to login (auth boundary preserved)",
-      "AC#2: Reader-role GET /Courses returns 200 with paginated course list (sort/filter template from rw-004)",
-      "AC#3: Reader-role GET /Courses/Details/{id} returns 200 with course details + enrolled students count",
-      "AC#4: Reader-role POST /Courses/Create returns 403 Forbidden (read-only role)",
-      "AC#5: Admin-role full CRUD (Create, Edit, Delete) works including department dropdown population",
-      "AC#6: Admin-role POST /Courses/{id}/Materials with file >5 MB returns 413 Payload Too Large (closes SEC-HIGH-002)",
-      "AC#7: Admin-role POST /Courses/{id}/Materials with disallowed Content-Type or extension returns 415 Unsupported Media Type (closes SEC-HIGH-002)",
-      "AC#8: Admin-role POST /Courses/{id}/Materials with path-traversal filename (../etc.) is rejected with 400 Bad Request and stored under sanitized content-addressable name (closes SEC-HIGH-002)",
-      "AC#9: Reader-role GET /Courses/{id}/Materials/{materialId} returns 200 with material content + correct Content-Type",
-      "AC#10: Regression — rw-001 + rw-002 + rw-003 + rw-004 stay green; cucumber 31/31 + xUnit 10/10"
+      "AC#1: Anonymous GET /Courses redirects to /Account/SignIn (auth boundary preserved per ADR-006)",
+      "AC#2: Reader-role GET /Courses returns 200 with the course list (eager-loaded Department names, includes seeded 'Reader-Visible Seed Course')",
+      "AC#3: Reader-role GET /Courses/Details/{id} returns 200 with the course's Title + Credits + Department name",
+      "AC#4: Reader-role POST /Courses/Create returns 403 Forbidden (read-only role per ADR-006)",
+      "AC#5: Admin-role GET /Courses/Create returns 200 and renders the form including the DepartmentID dropdown populated with the seeded department",
+      "AC#6: Admin-role POST /Courses/Create with valid form data and no file returns 302 redirect to /Courses (round-trip parity with legacy F-002 happy path)",
+      "AC#7: Admin-role POST /Courses/Create with a multipart upload >5 MB returns 413 Payload Too Large at the framework layer (closes SEC-HIGH-002 size-cap vector; mirrors sec-002 IIS-layer 413)",
+      "AC#8: Admin-role POST /Courses/Create with a multipart upload of a disallowed extension (.aspx, .svg, .exe) returns 415 Unsupported Media Type (closes SEC-HIGH-002 type-allowlist vector)",
+      "AC#9: Admin-role POST /Courses/Create with a multipart upload whose filename contains path-traversal characters (../../etc/passwd.jpg) returns 400 Bad Request (closes SEC-HIGH-002 path-traversal vector)",
+      "AC#10: Reader-role GET /Courses/Image/{id} for a course that has a TeachingMaterialImagePath returns 200 with Content-Disposition header starting with 'attachment' (closes SEC-HIGH-002 inline-render-attack vector)"
     ],
     "subTasks": [],
     "activeSubTask": null,
-    "redBaselineCommit": null,
-    "redBaselineEvidence": null,
-    "notes": "rw-005 follows rw-004 as the next authenticated CRUD increment per increment-plan.md (order=7). Closes SEC-HIGH-002 (unrestricted file upload on Courses) by hardening the teaching-materials path. Dependency on rw-001 (auth + DbContext + EF migrations), rw-002 (layout nav for Courses link), rw-003 (DepartmentsController template — Department dropdown for Course.DepartmentID FK), rw-004 (sort/filter/paging template + PaginatedList<T> helper — reuse). Step-1 plan: extend tests/integration/features/rw-005-courses.feature with AC#1-#10 scenarios + extend SeedSchoolData.SeedAsync with 2 deterministic Courses (one with materials, one without). Step-2 (contracts): no new shared types — Course/CourseMaterial DbSets already on SchoolContext from rw-001; OpenAPI specs/contracts/api/courses.yaml exists. Step-3 plan: CoursesController.cs + Models/CourseCreateViewModel.cs (only if needed for FK validation) + Views/Courses/{Index,Details,Create,Edit,Delete}.cshtml + Views/Courses/Materials/* + Services/UploadValidator.cs (size/type/extension/path-traversal guards — testable in isolation via xUnit). Deployment deferred per ADR-008. NotificationService calls intentionally NOT ported in rw-005 (defer to rw-007). Followups carried forward from rw-002: SRI integrity hashes for jsDelivr CDN resources still pending."
+    "redBaselineCommit": "d93db11fa9a71278b6efd6958d8be641de02b5bc",
+    "redBaselineEvidence": "RED baseline confirmed at commit d93db11: cucumber @rw-005 -> 10 scenarios FAILED with HTTP 404 (CoursesController + /Courses/Image route do not exist yet). Regression GREEN: cucumber '@rewrite and not @rw-005' -> 24/24 passed (rw-001..rw-004); xUnit src/ContosoUniversity.Web.UnitTests -> 10/10 passed; skip-scan with word-boundary anchors -> 0 matches. Pre-existing rw-004 AC#7 test-isolation gap surfaced mid-run (cumulative POST /Students/Create rows pushed Zulu past pageSize=3 page-1 boundary): 4 polluting 'rw-004-admin-create' Student rows deleted from ContosoUniversity LocalDB to restore baseline; underlying cleanup gap recorded as carry-forward TODO for rw-004 AC#7 (followup: add scenario-scoped DB cleanup hook OR unique LastName w/ deletion). SeedSchoolData.SeedDepartmentAndCourseAsync verified to run successfully on Web host startup (EF logs show SELECT-EXISTS pre-checks for Instructor 'Seed,Rewrite' + Student 'Reader-Sortable' returning TRUE, then INSERT INTO [Department] + INSERT INTO [Course] for the new rw-005 seed Department='Rewrite-Seed-Dept-rw005' + Course CourseID=99001).",
+    "notes": "rw-005 follows rw-004 as the next authenticated CRUD increment per increment-plan.md (order=7). Closes SEC-HIGH-002 (shallow file-upload validation on Courses) per the increment-plan rw-005 entry: framework-level 5 MB cap + extension allowlist + magic-byte check + sanitized server-generated filename + Content-Disposition: attachment on download. Dependencies: rw-001 (auth + DbContext + EF migrations), rw-002 (layout nav for Courses link), rw-003 (DepartmentsController + Departments dropdown source), rw-004 (Bootstrap 5 form patterns). Course entity has a SINGLE optional TeachingMaterialImagePath field (string, max 255 chars) — upload happens inside Create/Edit, NOT via a separate /Materials sub-resource (legacy parity). Step-1 plan: write tests/integration/features/rw-005-courses.feature with 10 scenarios covering AC#1-AC#10; extend tests/integration/support/world.ts with multipartRequest() (curl -F form/file fields); add tests/integration/steps/rewrite-courses.steps.ts with new verbs (multipart upload + Content-Disposition assertion + dynamic seeded-DepartmentID resolution); extend src/ContosoUniversity.Web/Data/SeedSchoolData.cs with one Department (Name='Rewrite-Seed-Dept-rw005', Budget=100000, InstructorID=seed instructor) + one Course (CourseID=99001, Title='Reader-Visible Seed Course', Credits=3, DepartmentID=seeded department, TeachingMaterialImagePath set to a deterministic path under App_Data/uploads/teaching-materials/) — the seed creates the on-disk file (3-byte placeholder) so AC#10 download succeeds in green-baseline. Step-2 (contracts): no new shared types — Course DbSet already on SchoolContext from rw-001; OpenAPI specs/contracts/api/courses.yaml exists. Step-3 plan: src/ContosoUniversity.Web/Controllers/CoursesController.cs + Views/Courses/{Index,Details,Create,Edit,Delete}.cshtml + Services/IUploadValidator.cs (interface + concrete impl with extension allowlist + magic-byte check via SixLabors.ImageSharp + sanitization helper — testable in isolation via xUnit) + add SixLabors.ImageSharp NuGet (cross-platform image decoder per increment-plan rw-005 risk mitigation) + [RequestSizeLimit(5_242_880)] on Create/Edit POST + dedicated [HttpGet] Image action returning File(stream, contentType, downloadFileName) which sets Content-Disposition: attachment. Deployment deferred per ADR-008. NotificationService calls intentionally NOT ported in rw-005 (defer to rw-007). Followups carried forward from rw-002: SRI integrity hashes for jsDelivr CDN resources still pending."
   }
 }
