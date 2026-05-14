@@ -7,6 +7,7 @@
   "scripts": {
     "test:integration": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs",
     "test:integration:legacy": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags \"@legacy or @existing-behavior or @security\"",
+    "test:integration:rewrite": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags \"@rewrite\"",
     "test:integration:csrf": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags \"@sec-high-001\"",
     "test:integration:dry": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --dry-run"
   },

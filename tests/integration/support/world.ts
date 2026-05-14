@@ -31,6 +31,12 @@ export class ContosoWorld extends World {
   /** Base URL of the system under test. Defaults to legacy MVC 5 endpoint. */
   baseUrl: string;
 
+  /** Legacy app base URL (MVC 5 + IIS Express). */
+  legacyBaseUrl: string;
+
+  /** Rewrite app base URL (ASP.NET Core 8 + Kestrel). */
+  rewriteBaseUrl: string;
+
   /** Per-scenario tmp directory for the curl cookie jar file. */
   private tmpDir: string;
   private cookieJarPath: string;
@@ -40,9 +46,28 @@ export class ContosoWorld extends World {
 
   constructor(options: IWorldOptions) {
     super(options);
-    this.baseUrl = process.env['LEGACY_BASE_URL'] ?? 'https://localhost:44300';
+    this.legacyBaseUrl = process.env['LEGACY_BASE_URL'] ?? 'https://localhost:44300';
+    this.rewriteBaseUrl = process.env['REWRITE_BASE_URL'] ?? 'http://localhost:7000';
+    // Default baseUrl is legacy; the @rewrite Background step switches it to rewriteBaseUrl.
+    this.baseUrl = this.legacyBaseUrl;
     this.tmpDir = mkdtempSync(join(tmpdir(), 'spec2cloud-'));
     this.cookieJarPath = join(this.tmpDir, 'cookies.txt');
+  }
+
+  /**
+   * Switch the active baseUrl to the rewrite ASP.NET Core 8 endpoint.
+   * Called from the @rewrite Background step before per-scenario requests.
+   */
+  useRewriteBaseUrl(): void {
+    this.baseUrl = this.rewriteBaseUrl;
+  }
+
+  /**
+   * Switch the active baseUrl to the legacy MVC 5 endpoint.
+   * Default at construction time; provided for symmetry with useRewriteBaseUrl.
+   */
+  useLegacyBaseUrl(): void {
+    this.baseUrl = this.legacyBaseUrl;
   }
 
   /**
