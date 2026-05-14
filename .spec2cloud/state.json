@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-15T15:30:00Z",
+  "lastUpdated": "2026-05-15T15:45:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -303,7 +303,7 @@
       { "id": "rw-006", "type": "rewrite", "title": "InstructorsController (largest controller; OfficeAssignment + CourseAssignment)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-003", "status": "planned", "order": 8 },
       { "id": "rw-007", "type": "rewrite", "title": "NotificationsController + Channel<T> infrastructure (CreatedBy backfill)", "closes": ["SEC-CRITICAL-002-backfill", "KL-NOTIF-002"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-006", "status": "delivered", "order": 9, "deliveredAt": "2026-05-15T15:00:00Z", "deliveredCommit": "18793d4" },
       { "id": "rw-008", "type": "rewrite", "title": "Delete MessageQueueTestController + add /health endpoint (cutover)", "closes": ["SEC-HIGH-004"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-007", "status": "delivered", "order": 10, "deliveredAt": "2026-05-15T15:30:00Z", "deliveredCommit": "1cb5077" },
-      { "id": "sec-003", "type": "security", "tier": 3, "severity": "medium", "title": "Verify Microsoft.Data.SqlClient is on a supported version (post-rewrite verification)", "closes": ["SEC-MEDIUM-007"], "adrs": ["ADR-003"], "frd": null, "status": "planned", "order": 11 },
+      { "id": "sec-003", "type": "security", "tier": 3, "severity": "medium", "title": "Verify Microsoft.Data.SqlClient is on a supported version (post-rewrite verification)", "closes": ["SEC-MEDIUM-007"], "adrs": ["ADR-003"], "frd": null, "status": "delivered", "order": 11, "deliveredAt": "2026-05-15T15:45:00Z", "deliveredCommit": "7869307" },
       { "id": "sec-004", "type": "security", "tier": 4, "severity": "low", "title": "Re-run security assessment + produce ADR-008 post-rewrite security baseline", "closes": [], "adrs": ["ADR-008-pending"], "frd": null, "status": "planned", "order": 12 }
     ],
     "findingsCoverage": {
@@ -487,27 +487,49 @@
       "testEvidence": "dotnet build src/ContosoUniversity.Web --nologo -> Build succeeded (0 Errors; 4 Warnings — all NU190x for SixLabors.ImageSharp 3.1.5 vulns); dotnet test src/ContosoUniversity.Web.UnitTests --no-build --nologo -> Passed 12, Failed 0 (Total 12); cucumber --tags @rw-008 -> 3 scenarios (3 passed), 12 steps (12 passed), 0m00.621s; cucumber FULL suite -> 54 scenarios (54 passed), 300 steps (300 passed), 0m17.218s (the 7 legacy sec-001/sec-002 scenarios that targeted the deleted https://localhost:44300 IIS Express app are removed in this commit because the legacy app no longer exists; equivalent security properties are covered by rw-003/rw-004 (CSRF on Departments/Students Create+Edit+Delete) and rw-005 AC#7 (5 MB upload cap with HTTP 413)); skip-detection scan with word-boundary anchors -> 0 matches across tests/** + e2e/** + specs/features/** + src/ContosoUniversity.Web/** + src/ContosoUniversity.Web.UnitTests/**.",
       "deployment": "DEFERRED — same USER ACTION blocker as rw-001..rw-007 (Azure subscription + azd auth + Entra tenant + 2 test users with Admin/Reader role claims) per ADR-008 §USER ACTION. Code is deploy-ready alongside rw-001..rw-007 and is now the SOLE codebase (legacy MVC 5 app removed).",
       "notes": "Implementation files (NEW): tests/integration/features/rw-008-health.feature (3 @rw-008 scenarios: AC#1 GET /health -> 200 + body 'Healthy'; AC#2 GET /health -> 200 + body 'database'; AC#3 GET /Health (capital H) -> 200 + body 'Healthy' for back-compat with rw-001a). Implementation files (MODIFIED): src/ContosoUniversity.Web/ContosoUniversity.Web.csproj (added <PackageReference Include=\"Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore\" Version=\"8.0.10\" />); src/ContosoUniversity.Web/Program.cs (3 changes — added 3 usings: Microsoft.AspNetCore.Diagnostics.HealthChecks, Microsoft.Extensions.Diagnostics.HealthChecks, System.Text.Json; added builder.Services.AddHealthChecks().AddDbContextCheck<SchoolContext>(name: \"database\"); added app.MapHealthChecks(\"/health\", new HealthCheckOptions { AllowCachingResponses=false, ResponseWriter=WriteHealthCheckJsonResponse }).AllowAnonymous(); added local function WriteHealthCheckJsonResponse that emits structured JSON {status, totalDurationMs, checks[{name,status,durationMs,description?}]}). Implementation files (DELETED): src/ContosoUniversity.Web/Controllers/HealthController.cs (legacy plain-text /Health controller removed; ASP.NET Core endpoint routing is case-insensitive so the new MapHealthChecks(\"/health\") matches both /health and /Health and the JSON body contains the substring 'Healthy' so all rw-001a back-compat assertions still pass); src/ContosoUniversity/ (entire legacy ASP.NET Framework MVC 5 directory removed via git rm -rf — closes SEC-HIGH-004 by eliminating the legacy code path entirely); tests/integration/features/sec-001-csrf-mark-as-read.feature + tests/integration/features/sec-002-upload-size-cap.feature (legacy IIS Express features that targeted https://localhost:44300/ — unrunnable and unnecessary post-cutover; CSRF coverage now lives in rw-003/rw-004 against the new /Departments and /Students mutating POSTs; 5 MB upload cap coverage now lives in rw-005 AC#7 against /Courses/Create with HTTP 413 from RequestSizeLimit). Test files (MODIFIED): src/ContosoUniversity.Web.UnitTests/Foundation/HostStartupSmokeTests.cs (HealthEndpointReturnsHealthy renamed to HealthEndpointReturnsJsonReportWithDatabaseCheck — asserts response.EnsureSuccessStatusCode + body Contains \"\\\"status\\\":\\\"Healthy\\\"\" + body Contains \"\\\"name\\\":\\\"database\\\"\" against GET /health, replacing the rw-001a strict-equality plain-text assertion). CRITICAL LESSONS LEARNED: (1) ASP.NET Core endpoint routing is CASE-INSENSITIVE so MapHealthChecks(\"/health\") matches both /health and /Health — there is no need for a separate registration for the capital-H back-compat route; the legacy [Route(\"Health\")] controller is shadowed by the middleware. (2) When cutting over a brownfield app, the @existing-behavior tests for the legacy code path must be deleted (not skipped) in the same cutover commit because the target host no longer exists; equivalent security properties belong on the new app's tests. (3) IIS Express may keep apphost.exe locks even after the parent terminal is killed because the dotnet host was launched with '2>&1 | Out-Null' which detaches stdout; ALWAYS run Get-Process ContosoUniversity.Web | Stop-Process -Force before any rebuild AND additionally check for orphaned iisexpress.exe via Get-CimInstance Win32_Process when removing src/ContosoUniversity/. (4) HealthChecks middleware must be registered with .AllowAnonymous() because AddAuthorization(o => o.FallbackPolicy = RequireAuthenticatedUser()) would otherwise 302-redirect liveness probes to /Account/SignIn. Carry-forward TODOs: SixLabors.ImageSharp 3.1.5 vulns; SRI integrity hashes for jsDelivr CDN resources still pending from rw-002 — both reassessed in sec-004."
+    },
+    {
+      "id": "sec-003",
+      "type": "security",
+      "tier": 3,
+      "severity": "medium",
+      "title": "Verify Microsoft.Data.SqlClient is on a supported version (post-rewrite verification)",
+      "frd": null,
+      "status": "delivered",
+      "step": "step-2-verify",
+      "startedAt": "2026-05-15T15:30:00Z",
+      "endedAt": "2026-05-15T15:45:00Z",
+      "closes": ["SEC-MEDIUM-007"],
+      "adrs": ["ADR-003"],
+      "redBaselineCommit": null,
+      "redBaselineEvidence": "Verification-only increment (no code change required). The resolved transitive Microsoft.Data.SqlClient version satisfies the supported floor without any explicit PackageReference pin.",
+      "deliveredAt": "2026-05-15T15:45:00Z",
+      "deliveredCommit": "7869307",
+      "commits": ["7869307"],
+      "testEvidence": "dotnet list src/ContosoUniversity.Web package --include-transitive | Select-String 'Microsoft.Data.SqlClient' -> Microsoft.Data.SqlClient 5.1.5 + Microsoft.Data.SqlClient.SNI.runtime 5.1.1 + Microsoft.SqlServer.Server 1.0.0 (resolved transitively via Microsoft.EntityFrameworkCore.SqlServer 8.0.10). 5.1.5 is on the supported 5.1.x branch and is patched against CVE-2024-0056 (TLS validation, fixed in 5.1.3). No explicit PackageReference pin required; AC#2 is conditional and not triggered. Full regression remained GREEN at the rw-008 cutover commit (cucumber 54/54, xUnit 12/12, skip-scan 0 matches) -- no code changed, so no re-verification needed.",
+      "deployment": "DEFERRED -- same USER ACTION blocker as rw-001..rw-008 (Azure subscription + azd auth + Entra tenant + 2 test users with Admin/Reader role claims) per ADR-008 §USER ACTION. SqlClient 5.1.5 is the version that ships in the deploy artifact alongside rw-001..rw-008.",
+      "notes": "No source files modified. Verification captured in this state entry (testEvidence). SEC-MEDIUM-007 closed: the legacy app shipped with System.Data.SqlClient 4.6.x; the rewritten app uses Microsoft.Data.SqlClient 5.1.5 (transitive via EF Core 8.0.10). LESSON LEARNED: For verification-only increments, capture the dotnet list output verbatim in testEvidence so the auditor can reproduce the assertion without re-running the command. Carry-forward TODO: pin Microsoft.Data.SqlClient explicitly if a future EF Core upgrade drifts the resolved version below 5.1.3."
     }
   ],
   "currentIncrement": {
-    "id": "sec-003",
+    "id": "sec-004",
     "type": "security",
-    "tier": 3,
-    "severity": "medium",
-    "title": "Verify Microsoft.Data.SqlClient is on a supported version (post-rewrite verification)",
-    "closes": ["SEC-MEDIUM-007"],
-    "adrs": ["ADR-003"],
+    "tier": 4,
+    "severity": "low",
+    "title": "Re-run security assessment + produce ADR-008 post-rewrite security baseline",
+    "closes": [],
+    "adrs": ["ADR-008-pending"],
     "frd": null,
     "status": "in-progress",
-    "step": "step-1-verify",
-    "startedAt": "2026-05-15T15:30:00Z",
+    "step": "step-1-author",
+    "startedAt": "2026-05-15T15:45:00Z",
     "endedAt": null,
-    "scope": "Verify the resolved Microsoft.Data.SqlClient transitive version on src/ContosoUniversity.Web is on a supported branch (>=5.1.0, ideally 5.1.5 via EF Core 8.0.10). If the resolved version drifts below the supported floor, pin via an explicit PackageReference. Closes SEC-MEDIUM-007 (legacy app shipped with vulnerable SqlClient 4.x; the new app picks SqlClient 5.x transitively via EF Core 8 -- this increment formalizes the assertion).",
+    "scope": "Re-run the security assessment against the rewritten ASP.NET Core 8 codebase (post rw-001..rw-008 + sec-001..sec-003). Produce specs/assessment/security-post-rewrite.md and specs/adrs/adr-008-post-rewrite-security-baseline.md (status=accepted) capturing: (a) verified-closed status of every SEC-* finding, (b) the new baseline's threat model, (c) deferred USER ACTION blockers (Azure subscription + azd auth + Entra tenant + 2 test users with Admin/Reader roles for cloud deploy), (d) carry-forward TODOs (SixLabors.ImageSharp 3.1.5 vulns, SRI integrity hashes for jsDelivr CDN, App_Data uploads on local disk to be replaced by Azure Blob Storage post-deploy).",
     "acceptanceCriteria": [
-      "(1) dotnet list package --include-transitive resolves Microsoft.Data.SqlClient at >= 5.1.0 on src/ContosoUniversity.Web.",
-      "(2) If the resolved version drifts below 5.1.0, the csproj pins a supported PackageReference.",
-      "(3) Full xUnit + cucumber regression remains GREEN with the resolved/pinned version.",
-      "(4) Evidence is captured in state.json testEvidence."
+      "(1) specs/assessment/security-post-rewrite.md exists and walks every SEC-* finding from the original assessment with verified-closed evidence (commit ref + test ref).",
+      "(2) specs/adrs/adr-008-post-rewrite-security-baseline.md exists with status=accepted and captures the new baseline + USER ACTION + carry-forward TODOs.",
+      "(3) state.json reflects all 12 increments delivered.",
+      "(4) Final regression GREEN (xUnit + cucumber + skip-scan)."
     ]
   }
 }
