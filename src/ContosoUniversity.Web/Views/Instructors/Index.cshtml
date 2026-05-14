@@ -1,0 +1,118 @@
+@model ContosoUniversity.Web.ViewModels.InstructorIndexData
+
+@{
+    ViewData["Title"] = "Instructors";
+}
+
+<h2>Instructors</h2>
+
+@if (User.IsInRole("Admin"))
+{
+    <p>
+        <a asp-action="Create" class="btn btn-primary">Create New</a>
+    </p>
+}
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Last Name</th>
+            <th>First Name</th>
+            <th>Hire Date</th>
+            <th>Office</th>
+            <th>Courses</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @{
+            var selectedInstructorId = (int?)ViewBag.InstructorID;
+        }
+        @foreach (var item in Model.Instructors)
+        {
+            var rowClass = item.ID == selectedInstructorId ? "table-success" : string.Empty;
+            <tr class="@rowClass">
+                <td>@item.LastName</td>
+                <td>@item.FirstMidName</td>
+                <td>@item.HireDate.ToString("yyyy-MM-dd")</td>
+                <td>@(item.OfficeAssignment?.Location)</td>
+                <td>
+                    @foreach (var courseAssignment in item.CourseAssignments)
+                    {
+                        <span>@courseAssignment.Course.CourseID  @courseAssignment.Course.Title</span>
+                        <br />
+                    }
+                </td>
+                <td>
+                    <a asp-action="Index" asp-route-id="@item.ID" class="btn btn-info btn-sm">Select</a>
+                    <text> | </text>
+                    <a asp-action="Details" asp-route-id="@item.ID" class="btn btn-info btn-sm">Details</a>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <text> | </text>
+                        <a asp-action="Edit" asp-route-id="@item.ID" class="btn btn-warning btn-sm">Edit</a>
+                        <text> | </text>
+                        <a asp-action="Delete" asp-route-id="@item.ID" class="btn btn-danger btn-sm">Delete</a>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.Courses != null)
+{
+    <h3>Courses Taught by Selected Instructor</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th></th>
+                <th>Number</th>
+                <th>Title</th>
+                <th>Department</th>
+            </tr>
+        </thead>
+        <tbody>
+            @{
+                var selectedCourseId = (int?)ViewBag.CourseID;
+            }
+            @foreach (var item in Model.Courses)
+            {
+                var rowClass = item.CourseID == selectedCourseId ? "table-success" : string.Empty;
+                <tr class="@rowClass">
+                    <td>
+                        <a asp-action="Index"
+                           asp-route-id="@selectedInstructorId"
+                           asp-route-courseID="@item.CourseID"
+                           class="btn btn-link btn-sm">Select</a>
+                    </td>
+                    <td>@item.CourseID</td>
+                    <td>@item.Title</td>
+                    <td>@(item.Department?.Name)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (Model.Enrollments != null)
+{
+    <h3>Students Enrolled in Selected Course</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Enrollments)
+            {
+                <tr>
+                    <td>@item.Student?.FullName</td>
+                    <td>@item.Grade</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

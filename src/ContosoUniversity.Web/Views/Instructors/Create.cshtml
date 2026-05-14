@@ -1,0 +1,79 @@
+@model ContosoUniversity.Web.Domain.Instructor
+
+@{
+    ViewData["Title"] = "Create";
+    var courses = ViewBag.Courses as List<ContosoUniversity.Web.ViewModels.AssignedCourseData>
+                  ?? new List<ContosoUniversity.Web.ViewModels.AssignedCourseData>();
+}
+
+<h2>Create</h2>
+
+<h4>Instructor</h4>
+<hr />
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="LastName" class="control-label"></label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="FirstMidName" class="control-label"></label>
+                <input asp-for="FirstMidName" class="form-control" />
+                <span asp-validation-for="FirstMidName" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="HireDate" class="control-label"></label>
+                <input asp-for="HireDate" class="form-control" type="date" />
+                <span asp-validation-for="HireDate" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="control-label">Office Location</label>
+                <input name="OfficeAssignment.Location" class="form-control" maxlength="50" />
+                <small class="form-text text-muted">Optional. Leave empty for no office assignment.</small>
+            </div>
+
+            <div class="form-group mb-3">
+                <label class="control-label">Courses</label>
+                <table class="table">
+                    <tbody>
+                        @{
+                            var cnt = 0;
+                        }
+                        @if (courses.Count > 0)
+                        {
+                            <tr>
+                                @foreach (var course in courses)
+                                {
+                                    if (cnt > 0 && cnt % 3 == 0)
+                                    {
+                                        @:</tr><tr>
+                                    }
+                                    cnt++;
+                                    <td>
+                                        <input type="checkbox"
+                                               name="selectedCourses"
+                                               value="@course.CourseID"
+                                               @(course.Assigned ? "checked=\"checked\"" : "") />
+                                        @course.CourseID  @course.Title
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="form-group mb-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>

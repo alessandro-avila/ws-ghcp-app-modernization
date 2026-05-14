@@ -1,0 +1,33 @@
+@model ContosoUniversity.Web.Domain.Instructor
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h2>Details</h2>
+
+<div>
+    <h4>Instructor</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">Last Name</dt>
+        <dd class="col-sm-10">@Model.LastName</dd>
+
+        <dt class="col-sm-2">First Name</dt>
+        <dd class="col-sm-10">@Model.FirstMidName</dd>
+
+        <dt class="col-sm-2">Hire Date</dt>
+        <dd class="col-sm-10">@Model.HireDate.ToString("yyyy-MM-dd")</dd>
+
+        <dt class="col-sm-2">Office</dt>
+        <dd class="col-sm-10">@(Model.OfficeAssignment?.Location)</dd>
+    </dl>
+</div>
+
+<div>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.ID" class="btn btn-warning">Edit</a>
+    }
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>
