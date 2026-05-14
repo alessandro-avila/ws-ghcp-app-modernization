@@ -388,7 +388,7 @@
       },
       { "id": "rw-001b", "title": "Cookie auth + ASP.NET Core Identity + dev-stub sign-in (no Entra yet)", "status": "delivered", "externalBlockers": [], "effortDays": 1.0,
         "redBaselineCommit": "19c20d0",
-        "deliveredCommit": "517f23c",
+        "deliveredCommit": "d32a4e5",
         "redBaseline": {
           "cucumberDryRun": "npm run test:integration:dry -> 12 scenarios, 51 steps, all bound (no UNDEFINED)",
           "cucumberRewriteBeforeImpl": "npm run test:integration:rewrite -> 5 scenarios (5 failed), 23 steps (5 failed, 18 skipped) — all 5 fail at the Background HTTPS-reachability step with 'Could not reach https://localhost:7001/' because the dev server is not running on HTTPS"
@@ -451,6 +451,6 @@
       { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "planned", "externalBlockers": ["USER ACTION: Microsoft Entra tenant + app registration + client secret + 2 test users"], "effortDays": 0.5 }
     ],
     "activeSubTask": "rw-001d",
-    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + 517f23c impl-green). Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
+    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
   }
 }
