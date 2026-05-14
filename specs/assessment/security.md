@@ -102,7 +102,7 @@ Every one of these is an architectural absence, not a configuration mistake. L3 
 | **OWASP** | A01:2021 — Broken Access Control (CSRF subset) |
 | **Severity** | **High** |
 | **Linked extraction findings** | `KL-CSRF-001` |
-| **Linked FRD** | F-007 — Real-Time Notification System |
+| **Linked FRD** | F-006 — Real-Time Notification System |
 | **Code locations** | `Controllers/NotificationsController.cs:44` |
 | **Evidence** | The action is decorated with `[HttpPost]` only — no `[ValidateAntiForgeryToken]`. Verified by reading lines 1–65 of the file. Every other `[HttpPost]` action in the codebase pairs `[HttpPost]` with `[ValidateAntiForgeryToken]` (verified across `Students`, `Courses`, `Instructors`, `Departments` POST actions). This is the only outlier. |
 | **Impact** | A malicious page that the victim visits while authenticated (after auth is added) could silently call `POST /Notifications/MarkAsRead` and hide unread notifications. Currently the body of `NotificationService.MarkAsRead` is empty (KL-NOTIF-002), so the practical impact today is zero — but as soon as the body is filled in, this becomes exploitable. |

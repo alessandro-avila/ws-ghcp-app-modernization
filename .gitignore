@@ -1,2 +1,7 @@
 .terraform
 /.vs
+
+# Node / spec2cloud test harness
+node_modules/
+tests/integration/.reports/
+*.log

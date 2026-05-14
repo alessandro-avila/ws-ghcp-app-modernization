@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T00:00:00Z",
+  "lastUpdated": "2026-05-14T01:00:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -293,7 +293,7 @@
     "totalIncrements": 12,
     "riskAdjustedDays": 26,
     "increments": [
-      { "id": "sec-001", "type": "security", "tier": 2, "severity": "high", "title": "Add ValidateAntiForgeryToken to NotificationsController.MarkAsRead", "closes": ["SEC-HIGH-001"], "adrs": ["ADR-006"], "frd": "F-007", "status": "planned", "order": 1 },
+      { "id": "sec-001", "type": "security", "tier": 2, "severity": "high", "title": "Add ValidateAntiForgeryToken to NotificationsController.MarkAsRead", "closes": ["SEC-HIGH-001"], "adrs": ["ADR-006"], "frd": "F-006", "status": "in-progress", "order": 1 },
       { "id": "sec-002", "type": "security", "tier": 2, "severity": "high", "title": "Align upload size cap to 5 MB across Web.config and CoursesController", "closes": ["SEC-HIGH-003"], "adrs": [], "frd": "F-002", "status": "planned", "order": 2 },
       { "id": "rw-001", "type": "rewrite", "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)", "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"], "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007"], "frd": null, "status": "planned", "order": 3 },
       { "id": "rw-002", "type": "rewrite", "title": "HomeController + static pages", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": ["F-005", "F-008"], "status": "planned", "order": 4 },
@@ -322,8 +322,35 @@
   "currentIncrement": {
     "id": "sec-001",
     "type": "security",
-    "status": "started",
-    "step": "green-baseline-prep",
-    "startedAt": "2026-05-14T00:00:00Z"
+    "status": "in-progress",
+    "step": "red-baseline-confirmed",
+    "startedAt": "2026-05-14T00:00:00Z",
+    "redBaselineConfirmedAt": "2026-05-14T01:00:00Z",
+    "testInfra": {
+      "runner": "@cucumber/cucumber@11.1.1",
+      "loader": "node --import tsx/esm",
+      "httpClient": "curl.exe (NTLM/SSPI default credentials)",
+      "feature": "tests/integration/features/sec-001-csrf-mark-as-read.feature",
+      "steps": "tests/integration/steps/notifications-csrf.steps.ts",
+      "world": "tests/integration/support/world.ts",
+      "hooks": "tests/integration/support/hooks.ts"
+    },
+    "redBaselineEvidence": {
+      "scenario": "@red-baseline @sec-high-001 — MarkAsRead rejects POST without an anti-forgery token",
+      "expected": "status one of 400/403/500",
+      "actual": "status 200, body {\"success\":true}",
+      "manuallyConfirmed": "PowerShell Invoke-WebRequest -UseDefaultCredentials -Method Post -Uri https://localhost:44300/Notifications/MarkAsRead?id=1 -> 200 + {\"success\":true}",
+      "automatedConfirmed": "npm run test:integration:csrf -> 1 failed (red-baseline), 1 passed (green-after-fix); 4 scenarios, 18 steps, 1 fail, 16 pass, 1 skip in test:integration:legacy run"
+    },
+    "humanGate": {
+      "status": "pending",
+      "protocol": "AGENTS.md §9 bug-spot protocol",
+      "awaitingApprovalOf": [
+        "Gherkin scenarios in tests/integration/features/sec-001-csrf-mark-as-read.feature",
+        "Step definitions in tests/integration/steps/notifications-csrf.steps.ts",
+        "Test World infrastructure (NTLM via curl) in tests/integration/support/",
+        "Proposed minimal fix: insert [ValidateAntiForgeryToken] above [HttpPost] on NotificationsController.MarkAsRead (line 44)"
+      ]
+    }
   }
 }

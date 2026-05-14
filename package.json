@@ -1,0 +1,19 @@
+{
+  "name": "contoso-university-modernization-tests",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "spec2cloud test harness for ContosoUniversity (legacy MVC 5 + ASP.NET Core 8 rewrite). Cucumber.js for behavioural scenarios; HTTP-based step definitions for the legacy MVC 5 app on IIS Express.",
+  "scripts": {
+    "test:integration": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs",
+    "test:integration:legacy": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags \"@legacy or @existing-behavior or @security\"",
+    "test:integration:csrf": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --tags \"@sec-high-001\"",
+    "test:integration:dry": "node --import tsx/esm ./node_modules/@cucumber/cucumber/bin/cucumber.js --config cucumber.cjs --dry-run"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "^11.1.1",
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
