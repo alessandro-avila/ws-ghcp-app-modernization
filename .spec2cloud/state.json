@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T22:30:00Z",
+  "lastUpdated": "2026-05-15T11:50:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -436,9 +436,9 @@
     "closes": [],
     "adrs": ["ADR-003", "ADR-004", "ADR-006"],
     "frd": "F-003",
-    "status": "not-started",
-    "step": null,
-    "startedAt": null,
+    "status": "in-progress",
+    "step": "step-3-impl",
+    "startedAt": "2026-05-15T11:30:00Z",
     "endedAt": null,
     "scope": "Port InstructorsController — the largest single controller rewrite per increment-plan.md rw-006. Three model classes touched: Instructor, OfficeAssignment (1:1 optional), CourseAssignment (composite key M:M). Cascading dropdown (selected Instructor -> Courses -> Enrollments) implemented via async fetch from Razor + IInstructorQueryService. CourseAssignment checkboxes via FormCollection bound to a ViewModel. CRUD as Admin (Index/Details/Create/Edit/Delete); Reader can list+view+drill down but cannot edit. Notification rows created for CUD with correct CreatedBy. Dependencies: rw-001 (auth + DbContext), rw-002 (layout nav for Instructors link), rw-003 (Departments), rw-005 (Courses).",
     "acceptanceCriteria": [
@@ -451,8 +451,8 @@
     ],
     "subTasks": [],
     "activeSubTask": null,
-    "redBaselineCommit": null,
-    "redBaselineEvidence": null,
+    "redBaselineCommit": "5ae2ae8",
+    "redBaselineEvidence": "RED baseline at commit 5ae2ae8: cucumber @rw-006 -> 10 scenarios FAILED with HTTP 404 (InstructorsController did not exist yet); regression cucumber '@rewrite and not @rw-006' -> 34/34 passed (rw-001..rw-005); xUnit -> 10/10 passed; skip-scan -> 0 matches in test code (matches in .md docs only).",
     "notes": "rw-006 follows rw-005 as the next entity controller per increment-plan.md (order=8). No new SEC findings closed (all closed in rw-001..rw-005). Largest controller in legacy app — composite-key + cascading dropdown both have edge cases. Test strategy: cucumber e2e for full CRUD + OfficeAssignment + CourseAssignment matrix; cucumber e2e for cascading dropdown UX; xUnit for CourseAssignment composite-key persistence; xUnit for OfficeAssignment optional 1:1 add/remove; regression for prior rw-001..rw-005. Carry-forward from rw-005: SixLabors.ImageSharp 3.1.5 has known vulns (NU1903 high GHSA-2cmq-823j-5qj8, NU1902 moderate GHSA-rxmq-m78w-7wmc) — evaluate Magick.NET / SkiaSharp / newer ImageSharp version. Carry-forward from rw-002: SRI integrity hashes for jsDelivr CDN resources (Bootstrap 5.3.3 + jQuery 3.7.1) still pending. Carry-forward from rw-004: AC#7 test-isolation gap (cumulative Student rows with LastName='rw-004-admin-create' pollute pageSize=3 page-1 boundary) — followup to add scenario-scoped DB cleanup hook OR unique LastName w/ deletion. NotificationService calls intentionally NOT ported in rw-006 (defer to rw-007)."
   }
 }

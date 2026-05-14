@@ -111,3 +111,4 @@
 2026-05-14T19:30:00Z action=increment-delivered increment=rw-004 commit=8715cfe tests=cucumber-31/31+xunit-10/10+skip-scan-clean deployment=deferred-per-ADR-008 next=rw-005-CoursesController-F-002-closes-SEC-HIGH-002
 2026-05-14T19:50:00Z [state] rw-005: red-baseline confirmed at d93db11 (10 cucumber failures with 404; 24/24 + 10/10 regression GREEN; skip-scan 0; pre-existing rw-004 AC#7 pollution cleaned up); advance step-1-tests -> step-3-impl; status planned -> in-progress
 2026-05-14T22:30:00Z [state] rw-005: delivered (commit 8505f9c, deploy deferred per ADR-008); cucumber 10/10 + 24/24 regression GREEN; xUnit 10/10; skip-scan 0; currentIncrement -> rw-006 (InstructorsController F-003)
+2026-05-15T11:50:00Z [state] rw-006: red-baseline -- record commit 5ae2ae8; advance step-1-tests -> step-3-impl
