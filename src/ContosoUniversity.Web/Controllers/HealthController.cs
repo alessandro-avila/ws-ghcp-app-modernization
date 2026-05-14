@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ContosoUniversity.Web.Controllers;
@@ -6,7 +7,9 @@ namespace ContosoUniversity.Web.Controllers;
 /// Liveness endpoint for the rewrite app (rw-001a AC #6).
 /// Returns plain-text "Healthy" so downstream tooling (Cucumber, future App Service health probes)
 /// can verify the process is responsive without exercising the database.
+/// Anonymous - must remain reachable when the global FallbackPolicy demands authentication.
 /// </summary>
+[AllowAnonymous]
 [Route("Health")]
 public class HealthController : Controller
 {

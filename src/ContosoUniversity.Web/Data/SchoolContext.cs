@@ -2,17 +2,24 @@
 using System;
 using System.Linq;
 using ContosoUniversity.Web.Domain;
+using ContosoUniversity.Web.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace ContosoUniversity.Web.Data
 {
     /// <summary>
     /// EF Core 8 DbContext ported from src/ContosoUniversity/Data/SchoolContext.cs (legacy EF Core 3.1.32).
-    /// Schema is preserved verbatim so the rewrite can read/write the same database during co-existence
-    /// (legacy app at https://localhost:44300, rewrite at http://localhost:7000, both bound to
-    /// (localdb)\MSSQLLocalDB.ContosoUniversity).
+    /// Schema for the legacy domain tables is preserved verbatim so the rewrite can read/write the
+    /// same database during co-existence (legacy app at https://localhost:44300 with Windows Auth,
+    /// rewrite at https://localhost:7001 with cookie auth, both bound to (localdb)\MSSQLLocalDB.ContosoUniversity).
+    ///
+    /// rw-001b: extended to <see cref="IdentityDbContext{TUser}"/> so ASP.NET Core Identity tables
+    /// (AspNetUsers, AspNetRoles, AspNetUserRoles, ...) live in the same database. The dev-stub
+    /// sign-in (rw-001b) consumes these; rw-001c will replace the credential check with Microsoft
+    /// Entra ID OIDC but the local user/role rows survive (kept for app-side authorization claims).
     /// </summary>
-    public class SchoolContext : DbContext
+    public class SchoolContext : IdentityDbContext<ApplicationUser>
     {
         public SchoolContext(DbContextOptions<SchoolContext> options) : base(options)
         {
@@ -30,6 +37,9 @@ namespace ContosoUniversity.Web.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // IdentityDbContext requires base.OnModelCreating to register the AspNet* identity tables.
+            base.OnModelCreating(modelBuilder);
+
             // Configure all DateTime properties to use datetime2 (matches legacy convention).
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {

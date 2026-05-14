@@ -1,9 +1,14 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ContosoUniversity.Web.Models;
 
 namespace ContosoUniversity.Web.Controllers;
 
+// Public landing page: anonymous so the rewrite app's home and error pages
+// remain reachable even when the global FallbackPolicy demands authentication
+// for everything else (rw-001b).
+[AllowAnonymous]
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;

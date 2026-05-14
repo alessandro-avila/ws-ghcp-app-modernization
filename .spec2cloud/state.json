@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T11:15:00Z",
+  "lastUpdated": "2026-05-14T12:00:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -386,12 +386,71 @@
         "deployment": "none yet — first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
         "notes": "AC #1 scaffold green, AC #2 EF Core 8 + entities + DbContext, AC #5 0001_InitialFromLegacy migration generated mirroring legacy schema (Notification, Person TPH with Discriminator, Department with RowVersion, Course/Enrollment/OfficeAssignment/CourseAssignment), AC #6 /Health endpoint. Auth-related ACs (#3, #4, #7-#10) deferred to rw-001b/c/d/e."
       },
-      { "id": "rw-001b", "title": "Cookie auth + ASP.NET Core Identity + dev-stub sign-in (no Entra yet)", "status": "planned", "externalBlockers": [], "effortDays": 1.0 },
+      { "id": "rw-001b", "title": "Cookie auth + ASP.NET Core Identity + dev-stub sign-in (no Entra yet)", "status": "delivered", "externalBlockers": [], "effortDays": 1.0,
+        "redBaselineCommit": "19c20d0",
+        "deliveredCommit": "517f23c",
+        "redBaseline": {
+          "cucumberDryRun": "npm run test:integration:dry -> 12 scenarios, 51 steps, all bound (no UNDEFINED)",
+          "cucumberRewriteBeforeImpl": "npm run test:integration:rewrite -> 5 scenarios (5 failed), 23 steps (5 failed, 18 skipped) — all 5 fail at the Background HTTPS-reachability step with 'Could not reach https://localhost:7001/' because the dev server is not running on HTTPS"
+        },
+        "impl": {
+          "package": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.10 added to ContosoUniversity.Web.csproj",
+          "applicationUser": "src/ContosoUniversity.Web/Identity/ApplicationUser.cs (extends IdentityUser)",
+          "schoolContext": "src/ContosoUniversity.Web/Data/SchoolContext.cs upgraded to IdentityDbContext<ApplicationUser>; OnModelCreating now calls base.OnModelCreating before custom mappings",
+          "seedAuthData": "src/ContosoUniversity.Web/Identity/SeedAuthData.cs (idempotent seeding of Admin + Reader roles and admin@contoso.test/reader@contoso.test users)",
+          "accountController": "src/ContosoUniversity.Web/Controllers/AccountController.cs (anonymous; GET /Account/SignIn renders form, POST /Account/SignIn ValidateAntiForgeryToken + PasswordSignInAsync, POST /Account/SignOut)",
+          "dashboardController": "src/ContosoUniversity.Web/Controllers/DashboardController.cs (protected by global FallbackPolicy)",
+          "views": ["src/ContosoUniversity.Web/Views/Account/SignIn.cshtml", "src/ContosoUniversity.Web/Views/Dashboard/Index.cshtml"],
+          "homeAndHealthAllowAnonymous": "added [AllowAnonymous] to HomeController and HealthController so existing rw-001a smoke tests + xUnit RootEndpointReturnsRewriteMarker / HealthEndpointReturnsHealthy stay green under the global FallbackPolicy",
+          "programWiring": [
+            "AddIdentity<ApplicationUser, IdentityRole> with stricter password policy + AddEntityFrameworkStores<SchoolContext>",
+            "ConfigureApplicationCookie: __Host-ContosoUniversity.Auth + HttpOnly + SecurePolicy.Always + SameSite.Strict + SlidingExpiration + ExpireTimeSpan=60min",
+            "AddAuthorization with FallbackPolicy = RequireAuthenticatedUser",
+            "Pipeline order: UseRouting -> UseAuthentication -> UseAuthorization",
+            "Startup: MigrateAsync + (Development-only) SeedAuthData.SeedAsync, wrapped in try/catch so DB outage does not block host bootup"
+          ],
+          "migration": "src/ContosoUniversity.Web/Data/Migrations/20260514092348_0002_AddIdentity.cs (creates AspNetRoles, AspNetUsers, AspNetRoleClaims, AspNetUserClaims, AspNetUserLogins, AspNetUserRoles, AspNetUserTokens)",
+          "harnessFix": "tests/integration/support/world.ts: only attach --ntlm --user : when targeting legacyBaseUrl (passing it against the rewrite endpoint causes antiforgery POSTs to return 400)",
+          "stepFix": "tests/integration/steps/rewrite-auth.steps.ts: 'Then the response Location header should start with' normalizes absolute URLs by stripping scheme+host so the assertion targets path+query"
+        },
+        "evidence": {
+          "dotnetBuild": "dotnet build ContosoUniversity.sln -> 0 warnings, 0 errors",
+          "dotnetTest": "dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> Passed: 3, Failed: 0",
+          "cucumberRewriteAfterImpl": "npm run test:integration:rewrite -> 5 scenarios (5 passed), 23 steps (23 passed)",
+          "cucumberFullSuite": "npm run test:integration -> 12 scenarios (12 passed), 51 steps (51 passed)",
+          "manualSignInDebug": "GET /Account/SignIn -> 200 + .AspNetCore.Antiforgery cookie set; POST /Account/SignIn with valid token+credentials -> 302 + Location: /Dashboard + Set-Cookie: __Host-ContosoUniversity.Auth=...; path=/; secure; samesite=strict; httponly"
+        },
+        "artifacts": {
+          "package": "Microsoft.AspNetCore.Identity.EntityFrameworkCore 8.0.10",
+          "newFiles": [
+            "src/ContosoUniversity.Web/Identity/ApplicationUser.cs",
+            "src/ContosoUniversity.Web/Identity/SeedAuthData.cs",
+            "src/ContosoUniversity.Web/Controllers/AccountController.cs",
+            "src/ContosoUniversity.Web/Controllers/DashboardController.cs",
+            "src/ContosoUniversity.Web/Views/Account/SignIn.cshtml",
+            "src/ContosoUniversity.Web/Views/Dashboard/Index.cshtml",
+            "src/ContosoUniversity.Web/Data/Migrations/20260514092348_0002_AddIdentity.cs",
+            "src/ContosoUniversity.Web/Data/Migrations/20260514092348_0002_AddIdentity.Designer.cs"
+          ],
+          "modifiedFiles": [
+            "src/ContosoUniversity.Web/Program.cs",
+            "src/ContosoUniversity.Web/Data/SchoolContext.cs",
+            "src/ContosoUniversity.Web/Data/Migrations/SchoolContextModelSnapshot.cs",
+            "src/ContosoUniversity.Web/Controllers/HomeController.cs",
+            "src/ContosoUniversity.Web/Controllers/HealthController.cs",
+            "src/ContosoUniversity.Web/ContosoUniversity.Web.csproj",
+            "tests/integration/support/world.ts",
+            "tests/integration/steps/rewrite-auth.steps.ts"
+          ]
+        },
+        "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
+        "notes": "ACs #3 (anonymous redirect to sign-in), #4 (authenticated dashboard access), #7 (anti-forgery enforcement on sign-in/out POSTs), #8 (__Host- prefix + HttpOnly + Secure + SameSite=Strict + 60-min sliding expiration), #9 (dev-stub seeded users for local development), and #10 (single backend identity store via SchoolContext) all green. ACs #11-#13 (Entra ID OIDC) deferred to rw-001c. Dev-stub credentials live in SeedAuthData.cs and are deliberately checked in: Development-only env guard plus rw-001c will delete the entire dev-stub sign-in surface."
+      },
       { "id": "rw-001d", "title": "Security headers + exception handler + structured logging + request timeout", "status": "planned", "externalBlockers": [], "effortDays": 0.5 },
       { "id": "rw-001e", "title": "Data Protection + Key Vault + secrets management + Application Insights", "status": "planned", "externalBlockers": ["Azure Key Vault provisioned (deferred to deploy)", "Application Insights workspace provisioned (deferred to deploy)"], "effortDays": 0.5 },
       { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "planned", "externalBlockers": ["USER ACTION: Microsoft Entra tenant + app registration + client secret + 2 test users"], "effortDays": 0.5 }
     ],
-    "activeSubTask": "rw-001b",
-    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + impl-green commit). Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
+    "activeSubTask": "rw-001d",
+    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + 517f23c impl-green). Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
   }
 }

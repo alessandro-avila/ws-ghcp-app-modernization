@@ -112,15 +112,23 @@ export class ContosoWorld extends World {
       '-k',
       '-s',
       '-i',
-      '--ntlm',
-      '--user', ':',
+    ];
+    // Only attach NTLM/SSPI credentials when targeting the legacy MVC 5 app.
+    // The rewrite uses cookie-based auth; passing `--ntlm --user :` against it
+    // makes curl send an empty `Authorization: NTLM` header that interacts
+    // poorly with the antiforgery cookie/token pairing (POSTs return 400
+    // even when both cookie and form token are valid).
+    if (this.baseUrl === this.legacyBaseUrl) {
+      args.push('--ntlm', '--user', ':');
+    }
+    args.push(
       '-c', this.cookieJarPath,
       '-b', this.cookieJarPath,
       // Note: do NOT pass --max-redirs 0 — it conflicts with NTLM's multi-step
       // 401-challenge handshake (curl exits 47 / TOO_MANY_REDIRECTS). curl does
       // not follow redirects by default; we intentionally omit -L instead.
       '-X', method
-    ];
+    );
     for (const [k, v] of Object.entries(headers)) {
       args.push('-H', `${k}: ${v}`);
     }

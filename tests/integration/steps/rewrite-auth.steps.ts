@@ -108,9 +108,21 @@ Then(
       location,
       `Expected a Location header, but none was set. Status was ${this.lastResponse!.status}.`
     );
+    // The challenge handler may emit either a relative ("/Account/SignIn?...")
+    // or absolute ("https://localhost:7001/Account/SignIn?...") Location.
+    // Strip the optional scheme+host so the assertion targets the path+query
+    // independently of where the test runs.
+    let candidate = location!;
+    if (/^https?:\/\//i.test(candidate)) {
+      try {
+        candidate = new URL(candidate).pathname + (new URL(candidate).search ?? '');
+      } catch {
+        // fall through with the raw value
+      }
+    }
     assert.ok(
-      location!.startsWith(prefix),
-      `Expected Location to start with "${prefix}", got "${location}".`
+      candidate.startsWith(prefix),
+      `Expected Location to start with "${prefix}" (path); got "${location}" (normalized to "${candidate}").`
     );
   }
 );

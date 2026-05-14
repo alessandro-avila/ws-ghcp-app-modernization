@@ -1,0 +1,29 @@
+@model ContosoUniversity.Web.Controllers.SignInViewModel
+
+@{
+    ViewData["Title"] = "Sign in (dev stub)";
+    var returnUrl = ViewData["ReturnUrl"] as string;
+}
+
+<h1>Sign in (dev stub)</h1>
+<p class="text-muted">
+    Dev-only sign-in form. The two seeded users are <code>admin@contoso.test</code>
+    and <code>reader@contoso.test</code>. Microsoft Entra ID replaces this entirely
+    in rw-001c.
+</p>
+
+<form asp-controller="Account" asp-action="SignIn" asp-route-returnUrl="@returnUrl" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="All" class="text-danger"></div>
+    <div class="form-group mb-3">
+        <label asp-for="Email" class="form-label">Email</label>
+        <input asp-for="Email" class="form-control" autocomplete="username" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    <div class="form-group mb-3">
+        <label asp-for="Password" class="form-label">Password</label>
+        <input asp-for="Password" class="form-control" autocomplete="current-password" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Sign in</button>
+</form>

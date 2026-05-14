@@ -1,0 +1,13 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    var userName = ViewData["UserName"] as string ?? string.Empty;
+}
+
+<h1>Dashboard</h1>
+<p>Welcome, <strong>@userName</strong>.</p>
+<p class="text-muted">This page is protected by the global <code>FallbackPolicy</code> requiring an authenticated user (rw-001b).</p>
+
+<form asp-controller="Account" asp-action="SignOutPost" method="post">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-outline-secondary">Sign out</button>
+</form>
