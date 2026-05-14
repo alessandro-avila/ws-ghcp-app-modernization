@@ -13,9 +13,9 @@ using Microsoft.Extensions.Logging;
 namespace ContosoUniversity.Web.Data;
 
 /// <summary>
-/// rw-003 (F-004) + rw-004 (F-001) + rw-005 (F-002): seeds deterministic dev-only
-/// domain rows so the rewrite controllers have non-trivial data to render in fresh
-/// dev/test databases.
+/// rw-003 (F-004) + rw-004 (F-001) + rw-005 (F-002) + rw-006 (F-003): seeds
+/// deterministic dev-only domain rows so the rewrite controllers have non-trivial
+/// data to render in fresh dev/test databases.
 ///
 /// Seeds:
 ///   - 1 Instructor ("Seed, Rewrite") - rw-003: Administrator dropdown source
@@ -35,6 +35,12 @@ namespace ContosoUniversity.Web.Data;
 ///     (Reader Details), and AC#10 (Reader Image download). The companion
 ///     on-disk image file is written next to the row insert so AC#10 has
 ///     bytes to stream back.
+///   - 1 Instructor ("Rewrite-Seed-Instructor-rw006, Rew") - rw-006: backs
+///     F-003 master/detail/sub-detail Index scenarios. Linked 1:1 to a seeded
+///     OfficeAssignment (Location="Office 99-001") and joined via a single
+///     CourseAssignment to the rw-005 seed Course (CourseID=99001). One
+///     additional Enrollment row (rw-005 Alpha student against CourseID=99001)
+///     gives AC#5 (sub-detail enrollments pane) a non-empty list to render.
 ///
 /// Idempotent - checks for existing well-known seed markers before inserting,
 /// so SeedAsync is safe to call on every host start.
@@ -74,6 +80,12 @@ public static class SeedSchoolData
     public const string SeedCourseImageRelativePath =
         "App_Data/uploads/teaching-materials/course_99001_seed.jpg";
 
+    // rw-006 (F-003): deterministic Instructor + OfficeAssignment + CourseAssignment
+    // + Enrollment for the master/detail/sub-detail Index cucumber scenarios.
+    public const string SeedRw006InstructorLastName = "Rewrite-Seed-Instructor-rw006";
+    public const string SeedRw006InstructorFirstName = "Rew";
+    public const string SeedRw006OfficeLocation = "Office 99-001";
+
     public static async Task SeedAsync(IServiceProvider services)
     {
         var logger = services.GetRequiredService<ILogger<SchoolContext>>();
@@ -83,6 +95,7 @@ public static class SeedSchoolData
         await SeedInstructorAsync(db, logger);
         await SeedStudentsAsync(db, logger);
         await SeedDepartmentAndCourseAsync(db, logger, env);
+        await SeedInstructorRw006Async(db, logger);
     }
 
     private static async Task SeedInstructorAsync(SchoolContext db, ILogger logger)
@@ -219,6 +232,105 @@ public static class SeedSchoolData
             logger.LogWarning(ex,
                 "Failed to seed deterministic Department + Course rows for the rw-005 Courses scenarios. "
                 + "The rw-005 cucumber scenarios will fail until the seed succeeds.");
+        }
+    }
+
+    /// <summary>
+    /// rw-006 (F-003): seeds an Instructor row plus its 1:1 OfficeAssignment and
+    /// a single CourseAssignment to the rw-005 seed Course (CourseID=99001), then
+    /// adds one Enrollment row so the Index sub-detail (enrollments) pane has
+    /// content to render. Idempotent via a LastName check.
+    ///
+    /// Depends on SeedDepartmentAndCourseAsync having created the seed Course;
+    /// if it didn't, the CourseAssignment + Enrollment inserts are skipped and
+    /// only the Instructor + OfficeAssignment rows are written. The cucumber
+    /// scenarios for AC#4 (assigned-courses panel) and AC#5 (enrollments panel)
+    /// will fail until both seeds succeed together.
+    /// </summary>
+    private static async Task SeedInstructorRw006Async(SchoolContext db, ILogger logger)
+    {
+        try
+        {
+            var alreadySeeded = await db.Instructors
+                .AsNoTracking()
+                .AnyAsync(i => i.LastName == SeedRw006InstructorLastName);
+
+            if (alreadySeeded)
+            {
+                return;
+            }
+
+            // Insert the Instructor first so the IDENTITY-generated PK is
+            // available for the OfficeAssignment shared-PK + CourseAssignment FK.
+            var instructor = new Instructor
+            {
+                LastName = SeedRw006InstructorLastName,
+                FirstMidName = SeedRw006InstructorFirstName,
+                HireDate = new DateTime(2024, 1, 1)
+            };
+            db.Instructors.Add(instructor);
+            await db.SaveChangesAsync();
+
+            // 1:1 OfficeAssignment (shared-PK with Instructor via InstructorID).
+            db.OfficeAssignments.Add(new OfficeAssignment
+            {
+                InstructorID = instructor.ID,
+                Location = SeedRw006OfficeLocation
+            });
+            await db.SaveChangesAsync();
+
+            // CourseAssignment to the rw-005 seed Course (CourseID=99001) IF
+            // that Course exists. If SeedDepartmentAndCourseAsync skipped
+            // because of a missing FK, we silently skip the join row too —
+            // the rw-006 Index scenarios will fail until both seeds succeed.
+            var seedCourseExists = await db.Courses
+                .AsNoTracking()
+                .AnyAsync(c => c.CourseID == SeedReaderVisibleCourseId);
+
+            if (seedCourseExists)
+            {
+                db.CourseAssignments.Add(new CourseAssignment
+                {
+                    InstructorID = instructor.ID,
+                    CourseID = SeedReaderVisibleCourseId
+                });
+                await db.SaveChangesAsync();
+
+                // One Enrollment so the AC#5 sub-detail pane is non-empty.
+                // Reuse the rw-004 seed Alpha Student (LastName="Alpha",
+                // FirstMidName="Reader-Sortable"). If absent (e.g. seed order
+                // changed), skip the Enrollment — AC#5 will fail loudly.
+                var alphaStudent = await db.Students
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(s => s.LastName == SeedStudentAlphaLastName
+                                           && s.FirstMidName == SeedStudentFirstNameMarker);
+
+                if (alphaStudent != null)
+                {
+                    var enrollmentExists = await db.Enrollments
+                        .AsNoTracking()
+                        .AnyAsync(e => e.CourseID == SeedReaderVisibleCourseId
+                                    && e.StudentID == alphaStudent.ID);
+
+                    if (!enrollmentExists)
+                    {
+                        db.Enrollments.Add(new Enrollment
+                        {
+                            CourseID = SeedReaderVisibleCourseId,
+                            StudentID = alphaStudent.ID,
+                            Grade = Grade.A
+                        });
+                        await db.SaveChangesAsync();
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex,
+                "Failed to seed the rw-006 Instructor (LastName={LastName}). The rw-006 cucumber "
+                + "scenarios will fail until the seed succeeds.",
+                SeedRw006InstructorLastName);
         }
     }
 
