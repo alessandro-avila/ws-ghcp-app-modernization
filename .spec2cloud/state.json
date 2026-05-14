@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T17:30:00Z",
+  "lastUpdated": "2026-05-14T18:30:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -297,7 +297,7 @@
       { "id": "sec-002", "type": "security", "tier": 2, "severity": "high", "title": "Align upload size cap to 5 MB across Web.config and CoursesController", "closes": ["SEC-HIGH-003"], "adrs": [], "frd": "F-002", "status": "delivered", "order": 2, "deliveredAt": "2026-05-14T03:00:00Z", "commits": ["416a918", "07b4a0d"] },
       { "id": "rw-001", "type": "rewrite", "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)", "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"], "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007", "ADR-008"], "frd": null, "status": "delivered", "order": 3, "deliveredAt": "2026-05-14T14:30:00Z", "subTaskCommits": { "rw-001a": ["68a1dda", "d63799f"], "rw-001b": ["19c20d0", "d32a4e5", "9b5faf6"], "rw-001d": ["001fc1a", "619a881", "e7b1232"], "rw-001e": ["6126cc8", "afaac39", "d0d04d5"], "rw-001c": ["c464361", "2a08af7"] }, "deploymentBlockedOn": ["USER ACTION: Azure subscription + azd auth", "USER ACTION: Microsoft Entra tenant + app registration + 2 test users (only required to validate Entra path; dev-stub path deploys without Entra)"] },
       { "id": "rw-002", "type": "rewrite", "title": "HomeController + static pages", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": ["F-005", "F-008"], "status": "delivered", "order": 4, "deliveredAt": "2026-05-14T17:00:00Z", "deliveredCommit": "9c18b3d" },
-      { "id": "rw-003", "type": "rewrite", "title": "DepartmentsController", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-004", "status": "in-progress", "order": 5 },
+      { "id": "rw-003", "type": "rewrite", "title": "DepartmentsController", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-004", "status": "delivered", "order": 5, "deliveredAt": "2026-05-14T18:30:00Z", "deliveredCommit": "349cf76" },
       { "id": "rw-004", "type": "rewrite", "title": "StudentsController (sort/filter/paging template)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-001", "status": "planned", "order": 6 },
       { "id": "rw-005", "type": "rewrite", "title": "CoursesController (closes SEC-HIGH-002 file upload hardening)", "closes": ["SEC-HIGH-002"], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-002", "status": "planned", "order": 7 },
       { "id": "rw-006", "type": "rewrite", "title": "InstructorsController (largest controller; OfficeAssignment + CourseAssignment)", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-003", "status": "planned", "order": 8 },
@@ -375,32 +375,49 @@
       "testEvidence": "dotnet build -> 0 errors, 0 warnings; dotnet test src/ContosoUniversity.Web.UnitTests -> 10/10 passed; npm run test:integration:rewrite -> 12/12 scenarios green; npm run test:integration -> 19/19 scenarios, 91/91 steps; skip-detection scan -> no matches across tests/integration/** + src/ContosoUniversity.Web/** + src/ContosoUniversity.Web.UnitTests/**.",
       "deployment": "DEFERRED — same USER ACTION blocker as rw-001 (Azure subscription + azd auth + Entra tenant). Code is deploy-ready alongside rw-001.",
       "notes": "Implementation files: Controllers/HomeController.cs (added About + Contact actions, injected SchoolContext), Models/SchoolViewModels/EnrollmentDateGroup.cs (new), Views/Home/Index.cshtml (jumbotron + 4 nav cards), Views/Home/About.cshtml (new — DB-backed Student Body Statistics from groupBy EnrollmentDate), Views/Home/Contact.cshtml (new — static contact card), Views/Shared/_Layout.cshtml (Bootstrap 5.3.3 + jQuery 3.7.1 from jsDelivr CDN; SRI integrity hashes deferred to a later increment per TODO comment), Middleware/SecurityHeadersMiddleware.cs (CSP extended with script-src + style-src https://cdn.jsdelivr.net while preserving 'default-src 'self'' substring for SEC-MEDIUM-002 assertion), tests/integration/features/rw-001a-foundation.feature (placeholder marker assertion updated to track new contract: 'Welcome to Contoso University'), src/ContosoUniversity.Web.UnitTests/Foundation/HostStartupSmokeTests.cs (same placeholder marker update on the xUnit smoke test). Test-discipline note: the rw-001a placeholder marker (xUnit + Cucumber) was updated rather than skipped/deleted because rw-002 is the contract change that supersedes the rw-001a placeholder marker per F-005/F-008 ACs. Followups carried forward: SRI integrity hashes for jsDelivr CDN resources need to be added in a future increment once verified against official Bootstrap/jQuery release notes."
+    },
+    {
+      "id": "rw-003",
+      "type": "rewrite",
+      "title": "DepartmentsController",
+      "frd": "F-004",
+      "closes": [],
+      "adrs": ["ADR-003", "ADR-004", "ADR-006"],
+      "redBaselineCommit": "09f2e01",
+      "redBaselineEvidence": "npm run test:integration:rewrite -> 17 scenarios (5 failed, 12 passed) — 5 new rw-003 scenarios fail with 404 because DepartmentsController is not yet implemented (anon GET, Reader GET 200, Reader POST 403, Admin GET Create, Admin POST Create); rw-001 + rw-002 unaffected; xUnit dotnet test src/ContosoUniversity.Web.UnitTests -> 10/10 passed; skip-detection scan -> no matches across tests/integration/** + src/ContosoUniversity.Web/** + src/ContosoUniversity.Web.UnitTests/**.",
+      "deliveredAt": "2026-05-14T18:30:00Z",
+      "deliveredCommit": "349cf76",
+      "commits": ["09f2e01", "349cf76"],
+      "testEvidence": "dotnet build src/ContosoUniversity.Web -> 0 errors, 0 warnings; dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> 10/10 passed; npm run test:integration:rewrite -> 17/17 scenarios green (rw-001a 8 + rw-001b 4 + rw-002 4 — wait actually rw-001a + rw-001b + rw-001d + rw-002 + rw-003 = 17 @rewrite scenarios all green); npm run test:integration -> 24/24 scenarios, 116/116 steps green (legacy CSRF 7 + @rewrite 17); skip-detection scan -> no matches across tests/integration/** + src/ContosoUniversity.Web/** + src/ContosoUniversity.Web.UnitTests/**.",
+      "deployment": "DEFERRED — same USER ACTION blocker as rw-001/rw-002 (Azure subscription + azd auth + Entra tenant + 2 test users with Admin/Reader role claims) per ADR-008 §USER ACTION. Code is deploy-ready alongside rw-001/rw-002.",
+      "notes": "Implementation files: Controllers/DepartmentsController.cs (full CRUD; class-level [Authorize(Roles=Admin,Reader)]; per-action [Authorize(Roles=Admin)] for Create/Edit/Delete; RowVersion concurrency handling on Edit + DeleteConfirmed via Entry().OriginalValues + DbUpdateConcurrencyException + per-field current-value diff); Views/Departments/{Index,Details,Create,Edit,Delete}.cshtml (Bootstrap 5 + tag helpers; auto-injected __RequestVerificationToken; Admin-only Create/Edit/Delete buttons gated via User.IsInRole); Data/SeedSchoolData.cs (idempotent dev-only seed of one Instructor 'Rewrite Seed' so the Administrator dropdown is non-trivial); Program.cs (wired SeedSchoolData.SeedAsync after SeedAuthData inside Development branch + cookie OnRedirectToAccessDenied returns 403 instead of 302 to /Account/SignIn so role-deny is observable); Controllers/ErrorController.cs (replaced [HttpGet] with [AcceptVerbs] for all verbs because UseStatusCodePagesWithReExecute preserves the original request method when re-executing the error path — without this, POST that triggers a 403 or 400 would re-execute as POST /Error/403 and fall through to MapFallback as 404). Bug-spot inside step-3: the rw-003 Reader scenario red-baseline embedded an impossible precondition (Given I have obtained an anti-forgery token from /Departments/Create — Reader cannot GET that page per ADR-006 Admin-only Create form), so the scenario was edited inline to drop the antiforgery-fetch precondition and POST without a token; the role-check 403 contract is preserved (ASP.NET Core filter pipeline runs Authorize before ValidateAntiForgery, so the role check fires first regardless of token presence). NotificationService calls intentionally NOT ported in rw-003 (XML doc on the controller explains; defer to F-005/F-008 follow-up increment when notification infrastructure ships in rw-007). Followups carried forward: SRI integrity hashes for jsDelivr CDN resources (Bootstrap CSS, Bootstrap JS bundle, jQuery 3.7.1) still pending from rw-002."
     }
   ],
   "currentIncrement": {
-    "id": "rw-003",
+    "id": "rw-004",
     "type": "rewrite",
-    "title": "DepartmentsController",
+    "title": "StudentsController (sort/filter/paging template)",
     "closes": [],
     "adrs": ["ADR-003", "ADR-004", "ADR-006"],
-    "frd": "F-004",
-    "status": "in-progress",
-    "step": "step-3-impl",
-    "startedAt": "2026-05-14T17:05:00Z",
+    "frd": "F-001",
+    "status": "planned",
+    "step": "step-1-tests",
+    "startedAt": null,
     "endedAt": null,
-    "scope": "Port DepartmentsController CRUD + Razor views (Index, Details, Create, Edit, Delete) under [Authorize(Roles=Admin,Reader)] per ADR-006 (Reader for read-only Index/Details, Admin for Create/Edit/Delete). Use Department + Administrator (FK -> Instructor) entities; Web project SchoolContext already has DbSet<Department>. Concurrency token (RowVersion) handling preserved per legacy.",
+    "scope": "Port StudentsController (Index with sort/filter/paging, Details, Create, Edit, Delete) under [Authorize(Roles=Admin,Reader)] per ADR-006 (Reader for read-only Index/Details, Admin for Create/Edit/Delete). Establish the sort/filter/paging template that subsequent CRUD controllers (Courses, Instructors) will reuse. PaginatedList<T> helper to be ported from legacy.",
     "acceptanceCriteria": [
-      "AC#1: Anonymous GET /Departments redirects to login (auth boundary preserved per rw-001)",
-      "AC#2: Reader-role GET /Departments returns 200 with department list (RowVersion column hidden in HTML)",
-      "AC#3: Reader-role POST /Departments/Create returns 403 Forbidden (read-only role)",
-      "AC#4: Admin-role full CRUD (Create, Edit, Delete) + concurrency-token round-trip works (concurrent edit detection)",
-      "AC#5: Department.Administrator dropdown populates from Instructors",
-      "AC#6: Regression — rw-001 + rw-002 stay green; CSP unchanged; SEC-CRITICAL-001 still closed for /Departments"
+      "AC#1: Anonymous GET /Students redirects to login (auth boundary preserved)",
+      "AC#2: Reader-role GET /Students returns 200 with paginated student list (default page size, sortable columns)",
+      "AC#3: Reader-role GET /Students?sortOrder=name_desc returns 200 with descending name sort",
+      "AC#4: Reader-role GET /Students?searchString=foo returns 200 with filtered list (LastName or FirstMidName contains)",
+      "AC#5: Reader-role POST /Students/Create returns 403 Forbidden (read-only role)",
+      "AC#6: Admin-role full CRUD (Create, Edit, Delete) works",
+      "AC#7: Regression — rw-001 + rw-002 + rw-003 stay green; CSP unchanged"
     ],
     "subTasks": [],
     "activeSubTask": null,
-    "redBaselineCommit": "09f2e01",
-    "redBaselineEvidence": "npm run test:integration:rewrite -> 17 scenarios (5 failed, 12 passed) — 5 new rw-003 scenarios fail with 404 because DepartmentsController is not yet implemented (anon GET, Reader GET 200, Reader POST 403, Admin GET Create, Admin POST Create); rw-001 + rw-002 unaffected; xUnit dotnet test src/ContosoUniversity.Web.UnitTests -> 10/10 passed; skip-detection scan -> no matches across tests/integration/** + src/ContosoUniversity.Web/** + src/ContosoUniversity.Web.UnitTests/**.",
-    "notes": "rw-003 is the first authenticated CRUD increment in the rewrite chain. Dependency on rw-001 (auth pipeline) and rw-002 (Home/Layout for nav) both satisfied. Deployment for rw-003 — like rw-001 + rw-002 — is deferred until USER ACTION unblocks the first azd up. Test approach: Cucumber scenarios for AC#1-#5 (anon redirect + role-based 200/403 + concurrency token round-trip) tagged @rewrite @rw-003 @feature-F-004 @red-baseline; xUnit unit tests for any controller action that doesn't require HTTP semantics. The test harness from rw-001c (WebApplicationFactory + dev-stub auth + role claims) is reusable here for unit-level role testing. Step-2 (contracts) was skipped because Department entity + DbSet<Department> already exist on SchoolContext from rw-001 — no new contracts to introduce; advanced directly from step-1 to step-3. Concurrency-token round-trip (AC#4 sub-criterion) is intentionally NOT in the red baseline; it will be added during step-3 once a deterministic seeded department row makes the stale-RowVersion POST reproducible without race-conditions, then exercised both by Cucumber and by xUnit DbUpdateConcurrencyException unit tests."
+    "redBaselineCommit": null,
+    "redBaselineEvidence": null,
+    "notes": "rw-004 follows rw-003 as the next authenticated CRUD increment per increment-plan.md (order=6). Deployment deferred per ADR-008 same as rw-001/rw-002/rw-003. Dependency on rw-001 (auth pipeline), rw-002 (Home/Layout nav), and rw-003 (DepartmentsController template — copy/paste pattern for [Authorize(Roles=...)] + tag-helper views + RowVersion-style concurrency where applicable). Note: Student entity does not have RowVersion in legacy schema — concurrency-token handling not required here. PaginatedList<T> needs to be ported (legacy file: src/ContosoUniversity/PaginatedList.cs) — first reuse opportunity for the rewrite project."
   }
 }
