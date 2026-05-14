@@ -1,0 +1,43 @@
+@model ContosoUniversity.Web.Domain.Course
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h2>Details</h2>
+
+<h4>Course</h4>
+<hr />
+<dl class="row">
+    <dt class="col-sm-3">@Html.DisplayNameFor(model => model.CourseID)</dt>
+    <dd class="col-sm-9">@Html.DisplayFor(model => model.CourseID)</dd>
+
+    <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Title)</dt>
+    <dd class="col-sm-9">@Html.DisplayFor(model => model.Title)</dd>
+
+    <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Credits)</dt>
+    <dd class="col-sm-9">@Html.DisplayFor(model => model.Credits)</dd>
+
+    <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Department.Name)</dt>
+    <dd class="col-sm-9">@Html.DisplayFor(model => model.Department.Name)</dd>
+
+    <dt class="col-sm-3">Teaching Material</dt>
+    <dd class="col-sm-9">
+        @if (!string.IsNullOrEmpty(Model.TeachingMaterialImagePath))
+        {
+            <a asp-action="Image" asp-route-id="@Model.CourseID" class="btn btn-secondary btn-sm">Download</a>
+        }
+        else
+        {
+            <span class="text-muted">(none)</span>
+        }
+    </dd>
+</dl>
+
+<div>
+    @if (User.IsInRole("Admin"))
+    {
+        <a asp-action="Edit" asp-route-id="@Model.CourseID" class="btn btn-warning">Edit</a>
+    }
+    <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+</div>

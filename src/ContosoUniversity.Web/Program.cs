@@ -160,6 +160,13 @@ if (!string.IsNullOrWhiteSpace(dataProtectionKeyVaultKeyUri))
 // behaviour for hermetic test runs.
 builder.Services.AddApplicationInsightsTelemetry();
 
+// rw-005 (closes SEC-HIGH-002): teaching-material image upload validator.
+// Singleton because there is no per-request state — the validator simply runs
+// extension/path-traversal/magic-byte checks against the supplied IFormFile
+// stream. CoursesController takes IUploadValidator via constructor injection.
+builder.Services.AddSingleton<ContosoUniversity.Web.Services.IUploadValidator,
+    ContosoUniversity.Web.Services.DefaultUploadValidator>();
+
 // rw-001c (ADR-005 layered scheme + ADR-008 dual-mode rationale): config-gated
 // Microsoft Entra ID OpenID Connect wiring. When AzureAd:ClientId is set, the
 // OIDC handler becomes the default *challenge* scheme so [Authorize] redirects
@@ -219,6 +226,32 @@ app.UseRequestTimeouts();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
+// rw-005 (closes SEC-HIGH-002 vector 1): early Content-Length check that
+// short-circuits oversize uploads to /Courses/Create and /Courses/Edit/* with
+// HTTP 413 BEFORE the MVC pipeline runs antiforgery validation. The antiforgery
+// authorization filter (Microsoft.AspNetCore.Mvc.ViewFeatures) calls
+// ReadFormAsync() which throws InvalidDataException on form-size overflow and
+// catches it as 400 AntiforgeryValidationFailedResult, so a controller-level
+// filter cannot get ahead of it. Middleware placed before UseRouting reliably
+// inspects the Content-Length header and rejects the request without ever
+// reading the body.
+const long coursesUploadMaxBytes = 5_242_880L; // 5 MiB — must match
+                                                // CoursesController.MaxUploadBytes.
+app.Use(async (ctx, next) =>
+{
+    if (HttpMethods.IsPost(ctx.Request.Method)
+        && ctx.Request.Path.StartsWithSegments("/Courses", StringComparison.OrdinalIgnoreCase, out var subPath)
+        && (subPath.Equals("/Create", StringComparison.OrdinalIgnoreCase)
+            || subPath.StartsWithSegments("/Edit", StringComparison.OrdinalIgnoreCase))
+        && ctx.Request.ContentLength.HasValue
+        && ctx.Request.ContentLength.Value > coursesUploadMaxBytes)
+    {
+        ctx.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
+        return;
+    }
+    await next().ConfigureAwait(false);
+});
 
 app.UseRouting();
 

@@ -20,6 +20,10 @@
     </PackageReference>
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.10" />
     <PackageReference Include="Microsoft.Identity.Web" Version="4.9.0" />
+    <!-- rw-005 (closes SEC-HIGH-002): cross-platform image decoder used by IUploadValidator
+         to perform a magic-byte check on uploaded teaching-material images. Confirms the
+         file truly is a JPEG/PNG/GIF/BMP regardless of declared extension or Content-Type. -->
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.5" />
   </ItemGroup>
 
 </Project>

@@ -1,0 +1,59 @@
+@model ContosoUniversity.Web.Domain.Course
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h2>Create</h2>
+
+<h4>Course</h4>
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        @* SEC-HIGH-002: enctype required so the multipart upload reaches the controller. *@
+        <form asp-action="Create" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="CourseID" class="control-label"></label>
+                <input asp-for="CourseID" class="form-control" />
+                <span asp-validation-for="CourseID" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Title" class="control-label"></label>
+                <input asp-for="Title" class="form-control" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Credits" class="control-label"></label>
+                <input asp-for="Credits" class="form-control" />
+                <span asp-validation-for="Credits" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="DepartmentID" class="control-label">Department</label>
+                <select asp-for="DepartmentID" class="form-control"
+                        asp-items="ViewBag.DepartmentID">
+                    <option value="">-- Select Department --</option>
+                </select>
+                <span asp-validation-for="DepartmentID" class="text-danger"></span>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="teachingMaterialImage" class="control-label">Teaching Material Image</label>
+                <input type="file" id="teachingMaterialImage" name="teachingMaterialImage" class="form-control"
+                       accept=".jpg,.jpeg,.png,.gif,.bmp" />
+                <small class="form-text text-muted">
+                    Optional. Allowed formats: .jpg, .jpeg, .png, .gif, .bmp. Max 5 MB.
+                </small>
+            </div>
+
+            <div class="form-group mb-3">
+                <input type="submit" value="Create" class="btn btn-primary" />
+                <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+            </div>
+        </form>
+    </div>
+</div>

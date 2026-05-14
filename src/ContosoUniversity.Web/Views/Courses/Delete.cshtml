@@ -1,0 +1,32 @@
+@model ContosoUniversity.Web.Domain.Course
+
+@{
+    ViewData["Title"] = "Delete";
+}
+
+<h2>Delete</h2>
+
+<h3>Are you sure you want to delete this?</h3>
+<div>
+    <h4>Course</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.CourseID)</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.CourseID)</dd>
+
+        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Title)</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.Title)</dd>
+
+        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Credits)</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.Credits)</dd>
+
+        <dt class="col-sm-3">@Html.DisplayNameFor(model => model.Department.Name)</dt>
+        <dd class="col-sm-9">@Html.DisplayFor(model => model.Department.Name)</dd>
+    </dl>
+
+    <form asp-action="Delete" method="post">
+        <input type="hidden" name="id" value="@Model.CourseID" />
+        <input type="submit" value="Delete" class="btn btn-danger" />
+        <a asp-action="Index" class="btn btn-secondary">Back to List</a>
+    </form>
+</div>
