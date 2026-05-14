@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T02:00:00Z",
+  "lastUpdated": "2026-05-14T03:00:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -294,7 +294,7 @@
     "riskAdjustedDays": 26,
     "increments": [
       { "id": "sec-001", "type": "security", "tier": 2, "severity": "high", "title": "Add ValidateAntiForgeryToken to NotificationsController.MarkAsRead", "closes": ["SEC-HIGH-001"], "adrs": ["ADR-006"], "frd": "F-006", "status": "delivered", "order": 1, "deliveredAt": "2026-05-14T02:00:00Z", "commits": ["4215b42", "5d07860"] },
-      { "id": "sec-002", "type": "security", "tier": 2, "severity": "high", "title": "Align upload size cap to 5 MB across Web.config and CoursesController", "closes": ["SEC-HIGH-003"], "adrs": [], "frd": "F-002", "status": "in-progress", "order": 2 },
+      { "id": "sec-002", "type": "security", "tier": 2, "severity": "high", "title": "Align upload size cap to 5 MB across Web.config and CoursesController", "closes": ["SEC-HIGH-003"], "adrs": [], "frd": "F-002", "status": "delivered", "order": 2, "deliveredAt": "2026-05-14T03:00:00Z", "commits": ["416a918", "07b4a0d"] },
       { "id": "rw-001", "type": "rewrite", "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)", "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"], "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007"], "frd": null, "status": "planned", "order": 3 },
       { "id": "rw-002", "type": "rewrite", "title": "HomeController + static pages", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": ["F-005", "F-008"], "status": "planned", "order": 4 },
       { "id": "rw-003", "type": "rewrite", "title": "DepartmentsController", "closes": [], "adrs": ["ADR-003", "ADR-004", "ADR-006"], "frd": "F-004", "status": "planned", "order": 5 },
@@ -329,18 +329,29 @@
       "commits": ["4215b42", "5d07860"],
       "testEvidence": "npm run test:integration:legacy -> 4 scenarios (4 passed), 18 steps (18 passed), 0m02.258s",
       "deployment": "none — sec-001 ships as git commit only per increment-plan.md §0.3 (first Azure deploy is in rw-001)"
+    },
+    {
+      "id": "sec-002",
+      "type": "security",
+      "frd": "F-002",
+      "closes": ["SEC-HIGH-003"],
+      "deliveredAt": "2026-05-14T03:00:00Z",
+      "commits": ["416a918", "07b4a0d"],
+      "redBaselineEvidence": "npm run test:integration:legacy -- --tags '@feature-F-002 or @sec-high-003' -> 3 scenarios (1 failed, 2 passed); failure: @red-baseline scenario expected HTTP 413 but got HTTP 500 (anti-forgery exception) - proves the 6 MB body crossed the wire and reached ASP.NET because Web.config IIS limits were 10 MB",
+      "testEvidence": "npm run test:integration:legacy -> 7 scenarios (7 passed), 28 steps (28 passed), 0m02.144s",
+      "deployment": "none — sec-002 ships as git commit only per increment-plan.md §0.3 (first Azure deploy is in rw-001)"
     }
   ],
   "currentIncrement": {
-    "id": "sec-002",
-    "type": "security",
-    "tier": 2,
-    "severity": "high",
-    "title": "Align upload size cap to 5 MB across Web.config and CoursesController",
-    "closes": ["SEC-HIGH-003"],
-    "frd": "F-002",
+    "id": "rw-001",
+    "type": "rewrite",
+    "title": "Project scaffold + EF Core 8 migration + Auth wiring (foundation)",
+    "closes": ["SEC-CRITICAL-001", "SEC-CRITICAL-002", "SEC-MEDIUM-001", "SEC-MEDIUM-002", "SEC-MEDIUM-003", "SEC-MEDIUM-005", "SEC-MEDIUM-006", "SEC-LOW-001", "SEC-LOW-002", "SEC-LOW-003"],
+    "adrs": ["ADR-002", "ADR-003", "ADR-004", "ADR-005", "ADR-006", "ADR-007"],
+    "frd": null,
     "status": "in-progress",
     "step": "start",
-    "startedAt": "2026-05-14T02:00:00Z"
+    "startedAt": "2026-05-14T03:00:00Z",
+    "notes": "First rewrite increment - foundation only. Establishes src/ContosoUniversity.Web/ (ASP.NET Core 8 MVC + EF Core 8 + Microsoft.Identity.Web). Legacy app at src/ContosoUniversity/ continues to run in parallel until rw-008 cutover. Significantly larger than sec-* increments; expect to break into sub-tasks."
   }
 }
