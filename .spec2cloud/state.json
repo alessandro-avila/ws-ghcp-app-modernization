@@ -2,7 +2,7 @@
   "version": "1.0",
   "mode": "brownfield",
   "currentPhase": "phase-2",
-  "lastUpdated": "2026-05-14T12:00:00Z",
+  "lastUpdated": "2026-05-14T13:00:00Z",
   "project": {
     "name": "ContosoUniversity",
     "rootPath": "src/ContosoUniversity",
@@ -446,11 +446,52 @@
         "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
         "notes": "ACs #3 (anonymous redirect to sign-in), #4 (authenticated dashboard access), #7 (anti-forgery enforcement on sign-in/out POSTs), #8 (__Host- prefix + HttpOnly + Secure + SameSite=Strict + 60-min sliding expiration), #9 (dev-stub seeded users for local development), and #10 (single backend identity store via SchoolContext) all green. ACs #11-#13 (Entra ID OIDC) deferred to rw-001c. Dev-stub credentials live in SeedAuthData.cs and are deliberately checked in: Development-only env guard plus rw-001c will delete the entire dev-stub sign-in surface."
       },
-      { "id": "rw-001d", "title": "Security headers + exception handler + structured logging + request timeout", "status": "planned", "externalBlockers": [], "effortDays": 0.5 },
+      { "id": "rw-001d", "title": "Security headers + exception handler + structured logging + request timeout", "status": "delivered", "externalBlockers": [], "effortDays": 0.5,
+        "redBaselineCommit": "001fc1a",
+        "redBaseline": {
+          "cucumberDryRun": "npm run test:integration:dry -> 15 scenarios, 69 steps, all bound (no UNDEFINED)",
+          "cucumberRewriteBeforeImpl": "npm run test:integration:rewrite -> 8 scenarios (3 failed, 5 passed); the 5 rw-001b scenarios stay green; 3 rw-001d scenarios fail at the first assertion: (1) security-headers: 'Expected response to include header Strict-Transport-Security. Headers seen: [content-length, content-type, date, server]', (2) friendly-404: 'Expected status 404, got 302' (FallbackPolicy redirects unmatched routes to SignIn), (3) masked-500: 'Expected status 500, got 302' (/Diag/Throw does not exist yet)"
+        },
+        "impl": {
+          "securityHeadersMiddleware": "src/ContosoUniversity.Web/Middleware/SecurityHeadersMiddleware.cs (NEW) — uses Response.OnStarting + TryAdd to append Strict-Transport-Security (1y), Content-Security-Policy (default-src 'self'), X-Frame-Options (DENY), X-Content-Type-Options (nosniff), Referrer-Policy (strict-origin-when-cross-origin) on every response",
+          "errorController": "src/ContosoUniversity.Web/Controllers/ErrorController.cs (NEW) — [AllowAnonymous] [Route(\"Error\")]; GET /Error/{statusCode?} -> renders Views/Error/Index.cshtml after capturing the IExceptionHandlerFeature exception (logged but never surfaced)",
+          "errorView": "src/ContosoUniversity.Web/Views/Error/Index.cshtml (NEW) — generic friendly page; 'Sorry, something went wrong.' marker + status-code echo, no internal details",
+          "diagController": "src/ContosoUniversity.Web/Controllers/DiagController.cs (NEW) — [AllowAnonymous] [Route(\"Diag\")] GET /Diag/Throw; throws InvalidOperationException only when IsDevelopment, returns 404 in non-dev",
+          "programWiring": [
+            "Logging.ClearProviders + Logging.AddJsonConsole(IncludeScopes=true) for SEC-MEDIUM-005",
+            "AddRequestTimeouts with DefaultPolicy { Timeout = 30s, TimeoutStatusCode = 504 } for SEC-MEDIUM-006",
+            "Pipeline (BEFORE UseRouting/Auth): UseExceptionHandler('/Error/500') -> UseStatusCodePagesWithReExecute('/Error/{0}') -> UseHsts -> UseMiddleware<SecurityHeadersMiddleware> -> UseRequestTimeouts",
+            "MapFallback returning 404 + AllowAnonymous so unmatched routes fall through StatusCodePages (avoids the FallbackPolicy 302-to-SignIn redirect)"
+          ],
+          "xunitTests": "src/ContosoUniversity.Web.UnitTests/Foundation/HardeningRegistrationTests.cs (NEW) — 2 DI-side tests: DefaultRequestTimeoutPolicyIsThirtySeconds (SEC-MEDIUM-006), JsonConsoleFormatterIsRegistered (SEC-MEDIUM-005, asserts both IncludeScopes=true on JsonConsoleFormatterOptions and ConsoleFormatterNames.Json present in IConsoleFormatter registrations)"
+        },
+        "evidence": {
+          "dotnetBuild": "dotnet build ContosoUniversity.sln -> 0 warnings, 0 errors",
+          "dotnetTest": "dotnet test src/ContosoUniversity.Web.UnitTests --no-build -> Passed: 5, Failed: 0 (3 rw-001a smoke tests + 2 rw-001d hardening tests)",
+          "cucumberRewriteAfterImpl": "npm run test:integration:rewrite -> 8 scenarios (8 passed), 41 steps (41 passed)",
+          "cucumberFullSuite": "npm run test:integration -> 15 scenarios (15 passed), 69 steps (69 passed)",
+          "manualLogFormat": "dotnet run launch produces single-line JSON log records on stdout, e.g. '{\"EventId\":14,\"LogLevel\":\"Information\",\"Category\":\"Microsoft.Hosting.Lifetime\",\"Message\":\"Now listening on: https://localhost:7001\",...,\"Scopes\":[]}'"
+        },
+        "artifacts": {
+          "newFiles": [
+            "src/ContosoUniversity.Web/Middleware/SecurityHeadersMiddleware.cs",
+            "src/ContosoUniversity.Web/Controllers/ErrorController.cs",
+            "src/ContosoUniversity.Web/Controllers/DiagController.cs",
+            "src/ContosoUniversity.Web/Views/Error/Index.cshtml",
+            "src/ContosoUniversity.Web.UnitTests/Foundation/HardeningRegistrationTests.cs",
+            "tests/integration/features/rw-001d-hardening.feature",
+            "tests/integration/steps/rewrite-hardening.steps.ts"
+          ],
+          "modifiedFiles": [
+            "src/ContosoUniversity.Web/Program.cs"
+          ]
+        },
+        "deployment": "none yet - first Azure deploy deferred until rw-001 fully delivered (per increment-plan.md §0.3)",
+        "notes": "Closes SEC-MEDIUM-001 (friendly error pages, no leaked stack traces), SEC-MEDIUM-002 (5 standard security response headers on every response), SEC-MEDIUM-005 (JSON console formatter for structured log ingestion), SEC-MEDIUM-006 (30-second default request timeout per ADR-006). Note: in Development the friendly error pipeline replaces the framework's DeveloperExceptionPage so the same masking applies in every environment — this is intentional per SEC-MEDIUM-001 (DeveloperExceptionPage explicitly leaks stack traces)." },
       { "id": "rw-001e", "title": "Data Protection + Key Vault + secrets management + Application Insights", "status": "planned", "externalBlockers": ["Azure Key Vault provisioned (deferred to deploy)", "Application Insights workspace provisioned (deferred to deploy)"], "effortDays": 0.5 },
       { "id": "rw-001c", "title": "Microsoft Entra ID integration (replaces dev-stub sign-in)", "status": "planned", "externalBlockers": ["USER ACTION: Microsoft Entra tenant + app registration + client secret + 2 test users"], "effortDays": 0.5 }
     ],
-    "activeSubTask": "rw-001d",
-    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
+    "activeSubTask": "rw-001e",
+    "notes": "rw-001 decomposed into 5 sub-increments per specs/tasks/rw-001-subtasks.md. Order: rw-001a -> rw-001b -> rw-001d -> rw-001e -> rw-001c (Entra last because of external blocker). rw-001a delivered 2026-05-14T11:15Z (commits 68a1dda red baseline + d63799f impl-green). rw-001b delivered 2026-05-14T12:00Z (commits 19c20d0 red baseline + d32a4e5 impl-green). rw-001d delivered 2026-05-14T13:00Z (commits 001fc1a red baseline + impl-green pending). Parent rw-001 flips to delivered when all 5 sub-increments are delivered."
   }
 }

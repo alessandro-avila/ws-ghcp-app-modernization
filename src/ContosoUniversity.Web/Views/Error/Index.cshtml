@@ -1,0 +1,16 @@
+@{
+    ViewData["Title"] = "Error";
+    var statusCode = ViewData["StatusCode"] as int? ?? 500;
+}
+
+<h1>Sorry, something went wrong.</h1>
+
+<p>The server returned status @statusCode.</p>
+
+<p>
+    If the problem persists, please contact the site administrator. The full error has been
+    logged for diagnosis. Internal details (stack trace, exception type, file paths) are never
+    shown here so that no implementation detail leaks to end users.
+</p>
+
+<p><a asp-controller="Home" asp-action="Index">Return to the home page</a>.</p>
