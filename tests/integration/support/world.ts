@@ -24,6 +24,13 @@ export interface HttpResponse {
   status: number;
   statusText: string;
   headers: Record<string, string>;
+  /**
+   * Set-Cookie response headers preserved as an ordered array of raw values
+   * (one entry per cookie). Kept separate from `headers` because Set-Cookie
+   * values legitimately contain commas in their `Expires=` attribute, which
+   * would corrupt comma-joined header storage.
+   */
+  setCookies: string[];
   body: string;
 }
 
@@ -47,7 +54,11 @@ export class ContosoWorld extends World {
   constructor(options: IWorldOptions) {
     super(options);
     this.legacyBaseUrl = process.env['LEGACY_BASE_URL'] ?? 'https://localhost:44300';
-    this.rewriteBaseUrl = process.env['REWRITE_BASE_URL'] ?? 'http://localhost:7000';
+    // Default to HTTPS so __Host- prefixed cookies (rw-001b) are accepted by
+    // the browser/cookie-jar contract. The `https` launchSettings profile
+    // exposes both 7001 (HTTPS) and 7000 (HTTP), so a single `dotnet run
+    // --launch-profile https` covers all rewrite Cucumber scenarios.
+    this.rewriteBaseUrl = process.env['REWRITE_BASE_URL'] ?? 'https://localhost:7001';
     // Default baseUrl is legacy; the @rewrite Background step switches it to rewriteBaseUrl.
     this.baseUrl = this.legacyBaseUrl;
     this.tmpDir = mkdtempSync(join(tmpdir(), 'spec2cloud-'));
@@ -187,7 +198,7 @@ function parseCurlResponse(raw: string): HttpResponse {
   if (headerEnd === -1) {
     const statusLine = block.split('\n', 1)[0];
     const { status, statusText } = parseStatusLine(statusLine);
-    return { status, statusText, headers: {}, body: '' };
+    return { status, statusText, headers: {}, setCookies: [], body: '' };
   }
   const headerSection = block.slice(0, headerEnd);
   const body = block.slice(headerEnd + 2);
@@ -195,15 +206,22 @@ function parseCurlResponse(raw: string): HttpResponse {
   const statusLine = lines.shift() ?? '';
   const { status, statusText } = parseStatusLine(statusLine);
   const headers: Record<string, string> = {};
+  const setCookies: string[] = [];
   for (const line of lines) {
     const idx = line.indexOf(':');
     if (idx > 0) {
       const name = line.slice(0, idx).trim().toLowerCase();
       const value = line.slice(idx + 1).trim();
+      if (name === 'set-cookie') {
+        // Preserve each Set-Cookie line verbatim so callers can inspect
+        // attributes (HttpOnly, Secure, SameSite, Expires, Path, Domain).
+        setCookies.push(value);
+        continue;
+      }
       headers[name] = headers[name] ? `${headers[name]}, ${value}` : value;
     }
   }
-  return { status, statusText, headers, body };
+  return { status, statusText, headers, setCookies, body };
 }
 
 function parseStatusLine(line: string): { status: number; statusText: string } {

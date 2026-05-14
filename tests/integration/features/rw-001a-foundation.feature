@@ -5,12 +5,15 @@
 # FRD: none (foundation increment - no functional behavior yet)
 # Spec: specs/tasks/rw-001-subtasks.md §rw-001a
 #
-# Pre-req: the new ASP.NET Core 8 app must be running on http://localhost:7000
-#         (start with: cd src/ContosoUniversity.Web && dotnet run)
+# Pre-req: the new ASP.NET Core 8 app must be running on https://localhost:7001
+#         (start with: dotnet run --project src/ContosoUniversity.Web --launch-profile https)
+#         The `https` profile binds both 7001 (HTTPS) and 7000 (HTTP); the rewrite
+#         Cucumber tests default to https://localhost:7001 so __Host- prefixed cookies
+#         used by rw-001b are accepted.
 #
 # Tags
 # ----
-# @rewrite        — targets the new ASP.NET Core 8 app at http://localhost:7000
+# @rewrite        — targets the new ASP.NET Core 8 app at https://localhost:7001
 # @rw-001a        — sub-increment ID
 # @feature-rw-001a-foundation — feature ID for filtered runs
 
